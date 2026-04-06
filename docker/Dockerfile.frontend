@@ -1,29 +1,37 @@
-# ---------- Stage 1: Build ----------
+# ---------- Stage 1: 构建 ----------
 FROM node:20-bullseye AS builder
-
 WORKDIR /app
 
-# 复制前端依赖文件
+# 复制 package.json / package-lock.json
 COPY ../package*.json ./
-RUN npm install --production=false
 
-# 复制前端源码
+# 设置为生产环境，只安装正式依赖
+ENV NODE_ENV=production
+RUN npm install --production
+
+# 复制前端源码（根目录）
 COPY ../ ./
 
-# 构建前端，固定 VITE_API_URL
-ARG VITE_API_URL=http://backend:3000
+# 构建前端静态文件
+ARG VITE_API_URL=http://backend:3002
 RUN NODE_OPTIONS="--max-old-space-size=1536" \
     VITE_API_URL=${VITE_API_URL} \
     npx vite build
 
-# ---------- Stage 2: Serve ----------
+# ---------- Stage 2: 轻量 Nginx 镜像 ----------
 FROM nginx:alpine
+WORKDIR /app
 
-# 拷贝构建好的前端 dist
-COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Nginx 配置
-COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+# 拷贝构建好的 dist
+COPY --from=builder /app/dist /app/dist
+COPY ../docker/nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+
+# 初始化挂载卷
+ENTRYPOINT ["/bin/sh", "-c", "\
+if [ -d /app ] && [ -z \"$(ls -A /app)\" ]; then \
+  echo '初始化挂载目录...'; \
+  cp -r /app/dist/* /app/; \
+fi; \
+nginx -g 'daemon off;'"]
