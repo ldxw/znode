@@ -43,7 +43,7 @@ jobs:
             --build-arg VITE_API_URL=http://backend:3000 \
             -t ghcr.io/${{ github.repository_owner }}/znode-frontend:${{ github.event.inputs.VERSION }} \
             -t ghcr.io/${{ github.repository_owner }}/znode-frontend:latest \
-            docker/Dockerfile.frontend \
+            -f docker/Dockerfile.frontend \
             --push
 
       # ------------------------------
@@ -54,7 +54,7 @@ jobs:
             --platform linux/amd64,linux/arm64 \
             -t ghcr.io/${{ github.repository_owner }}/znode-backend:${{ github.event.inputs.VERSION }} \
             -t ghcr.io/${{ github.repository_owner }}/znode-backend:latest \
-            docker/Dockerfile.backend \
+            -f docker/Dockerfile.backend \
             --push
 
       # ------------------------------
