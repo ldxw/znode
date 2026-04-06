@@ -1,26 +1,40 @@
-FROM node:20-bullseye
+FROM node:20-bullseye AS builder
 
+# 镜像内部工作目录
 WORKDIR /app
 
-# 复制后端依赖文件
+# 复制依赖文件
 COPY ../backend/package*.json ./
 
-RUN npm install --production=false
+# 安装正式依赖
+ENV NODE_ENV=production
+RUN npm install --production
 
 # 复制后端源码
 COPY ../backend ./
-
-# 拷贝 wait-for-it.sh
-COPY ../docker/wait-for-it.sh /wait-for-it.sh
-RUN chmod +x /wait-for-it.sh
 
 # Prisma 生成 + 构建
 RUN npx prisma generate
 RUN node scripts/build.mjs
 
+# ---------- Stage 2: 轻量生产镜像 ----------
+FROM node:20-bullseye-slim
+WORKDIR /app
+
+# 复制构建好的 dist 和 node_modules
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY ../docker/wait-for-it.sh /wait-for-it.sh
+RUN chmod +x /wait-for-it.sh
+
+# 设置端口
 ENV PORT=3002
 EXPOSE 3002
 
-# 容器启动前等待 MariaDB
-ENTRYPOINT ["/wait-for-it.sh", "mariadb:3306", "-t", "60", "--"]
-CMD ["node", "dist/index.js"]
+# 容器启动前初始化挂载目录，并等待数据库
+ENTRYPOINT ["/bin/sh", "-c", "\
+if [ -d /app ] && [ -z \"$(ls -A /app)\" ]; then \
+  echo '初始化挂载目录...'; \
+  cp -r /app/* /app/; \
+fi; \
+/wait-for-it.sh mariadb:3306 -t 60 -- node /app/dist/index.js"]
