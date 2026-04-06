@@ -4,14 +4,14 @@ FROM node:20-bullseye AS builder
 WORKDIR /app
 
 # 复制依赖文件
-COPY ../backend/package*.json ./
+COPY backend/package*.json ./
 
 # 安装依赖
 ENV NODE_ENV=development
 RUN npm install
 
 # 复制后端源码
-COPY ../backend ./
+COPY backend ./
 
 # Prisma 生成 + 构建
 RUN npx prisma generate
