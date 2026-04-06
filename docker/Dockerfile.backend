@@ -37,4 +37,4 @@ if [ -d /app ] && [ -z \"$(ls -A /app)\" ]; then \
   echo '初始化挂载目录...'; \
   cp -a /app/. /app/; \
 fi; \
-node /app/dist/index.js"]
+npx prisma db push && node /app/dist/index.js"]
