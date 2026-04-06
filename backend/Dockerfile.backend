@@ -11,7 +11,7 @@ ENV NODE_ENV=development
 RUN npm install
 
 # 复制后端源码
-COPY backend ./
+COPY . ./
 
 # Prisma 生成 + 构建
 RUN npx prisma generate
