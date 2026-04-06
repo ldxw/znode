@@ -61,6 +61,6 @@ jobs:
             --platform linux/amd64,linux/arm64 \
             -t ghcr.io/${{ github.repository_owner }}/znode-backend:${{ github.event.inputs.VERSION }} \
             -t ghcr.io/${{ github.repository_owner }}/znode-backend:latest \
-            -f docker/Dockerfile.backend \
-            ${{ github.workspace }} \
+            -f backend/Dockerfile.backend \
+            backend/ \
             --push
