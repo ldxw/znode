@@ -6,8 +6,8 @@ WORKDIR /app
 COPY ../package*.json ./
 
 # 设置为生产环境，只安装正式依赖
-ENV NODE_ENV=production
-RUN npm install --production
+# ENV NODE_ENV=production
+RUN npm install --production=false
 
 # 复制前端源码（根目录）
 COPY ../ ./
