@@ -11,8 +11,8 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    env:
-      IMAGE_NAME: ldxw/znode
+    # env:
+    #   IMAGE_NAME: ldxw/znode
 
     steps:
       # ------------------------------
@@ -61,15 +61,15 @@ jobs:
 
       # ------------------------------
       # 推送 GHCR 镜像
-      - name: 推送前端镜像到 GHCR
-        run: |
-          docker push ghcr.io/${{ github.repository_owner }}/znode-frontend:${{ github.event.inputs.VERSION }}
-          docker push ghcr.io/${{ github.repository_owner }}/znode-frontend:latest
+      # - name: 推送前端镜像到 GHCR
+      #   run: |
+      #     docker push ghcr.io/${{ github.repository_owner }}/znode-frontend:${{ github.event.inputs.VERSION }}
+      #     docker push ghcr.io/${{ github.repository_owner }}/znode-frontend:latest
 
-      - name: 推送后端镜像到 GHCR
-        run: |
-          docker push ghcr.io/${{ github.repository_owner }}/znode-backend:${{ github.event.inputs.VERSION }}
-          docker push ghcr.io/${{ github.repository_owner }}/znode-backend:latest
+      # - name: 推送后端镜像到 GHCR
+      #   run: |
+      #     docker push ghcr.io/${{ github.repository_owner }}/znode-backend:${{ github.event.inputs.VERSION }}
+      #     docker push ghcr.io/${{ github.repository_owner }}/znode-backend:latest
 
       # ------------------------------
       # 可选：推送到 Docker Hub / 阿里云镜像（注释）
