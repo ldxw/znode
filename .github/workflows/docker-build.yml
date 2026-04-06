@@ -44,6 +44,7 @@ jobs:
             -t ghcr.io/${{ github.repository_owner }}/znode-frontend:${{ github.event.inputs.VERSION }} \
             -t ghcr.io/${{ github.repository_owner }}/znode-frontend:latest \
             -f docker/Dockerfile.frontend \
+            . \
             --push
 
       # ------------------------------
@@ -55,6 +56,7 @@ jobs:
             -t ghcr.io/${{ github.repository_owner }}/znode-backend:${{ github.event.inputs.VERSION }} \
             -t ghcr.io/${{ github.repository_owner }}/znode-backend:latest \
             -f docker/Dockerfile.backend \
+            . \
             --push
 
       # ------------------------------
