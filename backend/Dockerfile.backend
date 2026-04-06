@@ -4,7 +4,7 @@ FROM node:20-bullseye AS builder
 WORKDIR /app
 
 # 复制依赖文件
-COPY backend/package*.json ./
+COPY package*.json ./
 
 # 安装依赖
 ENV NODE_ENV=development
