@@ -6,9 +6,9 @@ WORKDIR /app
 # 复制依赖文件
 COPY ../backend/package*.json ./
 
-# 安装正式依赖
-ENV NODE_ENV=production
-RUN npm install --production
+# 安装依赖
+ENV NODE_ENV=development
+RUN npm install
 
 # 复制后端源码
 COPY ../backend ./
