@@ -33,7 +33,7 @@ EXPOSE 80
 # 运行
 # ENTRYPOINT ["nginx", "-g", "daemon off;"]
 # ENTRYPOINT 直接替换静态文件里的 API_URL 并启动 Nginx
-ENTRYPOINT ["/bin/sh", "-c", "\
+ENTRYPOINT ["/bin/ash", "-c", "\
 if [ -n \"$API_URL\" ]; then \
   echo '替换前端 API 地址为: '$API_URL; \
   find /usr/share/nginx/html/assets -type f -name '*.js' -exec sed -i 's|http://localhost:3002|'$API_URL'|g' {} \; \
