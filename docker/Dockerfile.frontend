@@ -13,10 +13,11 @@ RUN npm install --production=false
 COPY . ./
 
 # 构建前端静态文件
-ARG VITE_API_URL=http://backend:3002
-RUN NODE_OPTIONS="--max-old-space-size=1536" \
-    VITE_API_URL=${VITE_API_URL} \
-    npx vite build
+# ARG VITE_API_URL=http://backend:3002
+# RUN NODE_OPTIONS="--max-old-space-size=1536" \
+#     VITE_API_URL=${VITE_API_URL} \
+#     npx vite build
+RUN NODE_OPTIONS="--max-old-space-size=1536" npx vite build
 
 # ---------- Stage 2: 轻量 Nginx 镜像 ----------
 FROM nginx:alpine
