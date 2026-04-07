@@ -38,7 +38,7 @@ COPY ../docker/nginx-frontend-api.conf /etc/nginx/conf.d/frontend-api.conf
 COPY docker/entrypoint-frontend.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-EXPOSE 80
+EXPOSE 80 81 82
 
 ENTRYPOINT ["/entrypoint.sh"]
 
