@@ -30,4 +30,11 @@ COPY ../docker/nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
 
 # 运行
-ENTRYPOINT ["nginx", "-g", "daemon off;"]
+# ENTRYPOINT ["nginx", "-g", "daemon off;"]
+# 运行前替换硬编码 API 地址
+ENTRYPOINT ["/bin/sh", "-c", "\
+if [ -n \"$API_URL\" ]; then \
+  echo '替换前端硬编码 API 地址为: '$API_URL; \
+  sed -i 's|http://localhost:3002|'$API_URL'|g' /usr/share/nginx/html/assets/*.js; \
+fi; \
+nginx -g 'daemon off;'"]
