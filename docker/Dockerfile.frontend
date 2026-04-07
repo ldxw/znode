@@ -15,8 +15,8 @@ COPY . ./
 # 构建前端，并传入 VITE_API_URL
 # ARG VITE_API_URL=http://backend:3002
 # RUN NODE_OPTIONS="--max-old-space-size=1536" \
-    VITE_API_URL=${VITE_API_URL} \
-    npx vite build
+#     VITE_API_URL=${VITE_API_URL} \
+#     npx vite build
 RUN NODE_OPTIONS="--max-old-space-size=1536" \
     npx vite build
 
