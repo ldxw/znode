@@ -14,7 +14,7 @@ RUN npm install
 COPY . ./
 
 # Prisma 生成 + 构建
-RUN npx prisma generate --schema ./prisma/schema.prisma
+RUN npx prisma generate
 RUN node scripts/build.mjs
 
 # ---------- Stage 2: 轻量生产镜像 ----------
