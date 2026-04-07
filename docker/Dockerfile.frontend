@@ -30,10 +30,10 @@ RUN apk add --no-cache bash
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # 前后端一个域名反代
-COPY ../docker/nginx-frontend-api.conf /etc/nginx/conf.d/frontend-backend.conf
+COPY ../docker/nginx-frontend-api.conf /etc/nginx/conf.d/frontend-api.conf
 
 # 前后端分开反代
-COPY ../docker/nginx-frontend-api.conf /etc/nginx/conf.d/frontend-api.conf
+COPY ../docker/nginx-frontend-backend.conf /etc/nginx/conf.d/frontend-backend.conf
 
 COPY docker/entrypoint-frontend.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
