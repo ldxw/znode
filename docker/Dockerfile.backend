@@ -32,4 +32,4 @@ EXPOSE 3002
 
 # 初始化数据库和启动
 ENTRYPOINT ["/bin/sh", "-c", "\
-npx prisma migrate deploy && node /app/dist/index.js"]
+npx prisma db push && node /app/dist/index.js"]
