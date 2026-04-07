@@ -39,13 +39,12 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # ------------------------------
-      # 构建前端镜像
+      # 构建前端镜像 --build-arg VITE_API_URL=http://backend:3002 \
       - name: 构建前端镜像
         if: ${{ github.event.inputs.TARGET == 'all' || github.event.inputs.TARGET == 'frontend' }}
         run: |
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
-            --build-arg VITE_API_URL=http://backend:3002 \
             -t ghcr.io/${{ github.repository_owner }}/znode-frontend:${{ github.event.inputs.VERSION }} \
             -t ghcr.io/${{ github.repository_owner }}/znode-frontend:latest \
             -f docker/Dockerfile.frontend \
