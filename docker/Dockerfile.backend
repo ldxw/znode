@@ -4,14 +4,14 @@ FROM node:20-bullseye AS builder
 WORKDIR /app
 
 # 复制依赖文件
-COPY package*.json ./
+COPY backend/package*.json ./
 
 # 安装依赖
 ENV NODE_ENV=development
 RUN npm install
 
 # 复制后端源码
-COPY . ./
+COPY backend ./
 
 # Prisma 生成 + 构建
 RUN npx prisma generate
@@ -25,19 +25,11 @@ WORKDIR /app
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
-# COPY ../docker/wait-for-it.sh /wait-for-it.sh
-# RUN chmod +x /wait-for-it.sh
 
 # 设置端口
 ENV PORT=3002
 EXPOSE 3002
 
-# 容器启动前初始化挂载目录，并等待数据库 /wait-for-it.sh mariadb:3306 -t 60 -- 
+# 初始化数据库和启动
 ENTRYPOINT ["/bin/sh", "-c", "\
-if [ -d /app ] && [ -z \"$(ls -A /app)\" ]; then \
-  echo '初始化挂载目录...'; \
-  cp -a /app/dist/. /app/dist/; \
-  cp -a /app/node_modules/. /app/node_modules/; \
-  cp -a /app/prisma/. /app/prisma/; \
-fi; \
-npx prisma db push && node /app/dist/index.js"]
+npx prisma migrate deploy && node /app/dist/index.js"]
