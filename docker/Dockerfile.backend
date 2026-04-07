@@ -21,6 +21,9 @@ RUN node scripts/build.mjs
 FROM node:20-bullseye-slim
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y curl wget \
+    && rm -rf /var/lib/apt/lists/*
+
 # 复制构建好的 dist 和 node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
