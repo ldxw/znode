@@ -8,11 +8,15 @@ on:
         required: false
         default: '1.0.2'
       API_URL:
-        description: '前端运行时 API 地址'
+        description: '前端 API 地址'
         required: false
         default: 'http://backend:3002'
+      FRONTEND_URL:
+        description: '后端跨域域名，逗号分隔'
+        required: false
+        default: ''
       BUILD_TARGET:
-        description: '前端/后端/全部'
+        description: '构建目标'
         required: false
         default: 'all'
         type: choice
@@ -26,7 +30,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # ------------------------------
       - name: 检出代码
         uses: actions/checkout@v3
 
@@ -44,18 +47,22 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # ------------------------------
-      # 检查源码默认 API_URL 并替换为占位符
-      - name: 替换前端源码默认 API_URL
+      # 替换前端源码 API 地址
+      - name: 替换前端默认 API 地址
         if: contains(github.event.inputs.BUILD_TARGET, 'frontend') || contains(github.event.inputs.BUILD_TARGET, 'all')
         run: |
-          echo "查找源码中默认 API_URL 并替换为占位符 __API_URL__"
-          FOUND=$(grep -Rn "http://localhost:3002" ./src || true)
-          if [ -n "$FOUND" ]; then
-            echo "发现默认 URL，需要替换为占位符:"
-            echo "$FOUND"
-            grep -Rl "http://localhost:3002" ./src | xargs sed -i "s|http://localhost:3002|__API_URL__|g"
-          else
-            echo "✅ 源码中未发现默认 URL"
+          echo "查找前端源码中默认 API_URL 并替换为占位符 __API_URL__"
+          grep -Rl "http://localhost:3002" ./src | xargs sed -i "s|http://localhost:3002|__API_URL__|g"
+
+      # ------------------------------
+      # 替换后端 allowedOrigins 跨域
+      - name: 替换后端 allowedOrigins
+        if: contains(github.event.inputs.BUILD_TARGET, 'backend') || contains(github.event.inputs.BUILD_TARGET, 'all')
+        run: |
+          TARGET_FILE="./src/index.ts"
+          if [ -f "$TARGET_FILE" ]; then
+            sed -i "s|const allowedOrigins = .*|const allowedOrigins = ['http://localhost:5173','http://localhost:8080','http://localhost:8081', ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',').map(u=>u.trim()).filter(Boolean) : [])];|g" $TARGET_FILE
+            echo "✅ allowedOrigins 已替换为支持运行时多域名"
           fi
 
       # ------------------------------
@@ -65,7 +72,7 @@ jobs:
         run: |
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
-            --build-arg VITE_API_URL=${{ github.event.inputs.API_URL }} \
+            --build-arg API_URL="${{ github.event.inputs.API_URL }}" \
             -t ghcr.io/${{ github.repository_owner }}/znode-frontend:${{ github.event.inputs.VERSION }} \
             -t ghcr.io/${{ github.repository_owner }}/znode-frontend:latest \
             -f docker/Dockerfile.frontend \
