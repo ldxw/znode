@@ -25,7 +25,6 @@ WORKDIR /app
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app ./source  # 保存一份源文件作为初始化用
 # COPY ../docker/wait-for-it.sh /wait-for-it.sh
 # RUN chmod +x /wait-for-it.sh
 
@@ -37,6 +36,8 @@ EXPOSE 3002
 ENTRYPOINT ["/bin/sh", "-c", "\
 if [ -d /app ] && [ -z \"$(ls -A /app)\" ]; then \
   echo '初始化挂载目录...'; \
-  cp -a /source/. /app/; \
+  cp -a /app/dist/. /app/dist/; \
+  cp -a /app/node_modules/. /app/node_modules/; \
+  cp -a /app/prisma/. /app/prisma/; \
 fi; \
 npx prisma db push && node /app/dist/index.js"]
