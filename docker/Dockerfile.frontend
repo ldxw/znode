@@ -13,9 +13,11 @@ RUN npm install --production=false
 COPY . ./
 
 # 构建前端，并传入 VITE_API_URL
-ARG VITE_API_URL=http://backend:3002
-RUN NODE_OPTIONS="--max-old-space-size=1536" \
+# ARG VITE_API_URL=http://backend:3002
+# RUN NODE_OPTIONS="--max-old-space-size=1536" \
     VITE_API_URL=${VITE_API_URL} \
+    npx vite build
+RUN NODE_OPTIONS="--max-old-space-size=1536" \
     npx vite build
 
 # ---------- Stage 2: 轻量 Nginx 镜像 ----------
@@ -29,4 +31,11 @@ COPY ../docker/nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
 
 # 运行
-ENTRYPOINT ["nginx", "-g", "daemon off;"]
+# ENTRYPOINT ["nginx", "-g", "daemon off;"]
+# ENTRYPOINT 直接替换静态文件里的 API_URL 并启动 Nginx
+ENTRYPOINT ["/bin/sh", "-c", "\
+if [ -n \"$API_URL\" ]; then \
+  echo '替换前端 API 地址为: '$API_URL; \
+  find /usr/share/nginx/html/assets -type f -name '*.js' -exec sed -i 's|http://localhost:3002|'$API_URL'|g' {} \; \
+fi; \
+nginx -g 'daemon off;'"]
