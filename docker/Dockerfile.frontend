@@ -10,7 +10,7 @@ COPY ../package*.json ./
 RUN npm install --production=false
 
 # 复制前端源码（根目录）
-COPY ../ ./
+COPY . ./
 
 # 构建前端静态文件
 ARG VITE_API_URL=http://backend:3002
@@ -33,6 +33,6 @@ EXPOSE 80
 ENTRYPOINT ["/bin/sh", "-c", "\
 if [ -d /app ] && [ -z \"$(ls -A /app)\" ]; then \
   echo '初始化挂载目录...'; \
-  cp -a /source/dist/. /usr/share/nginx/html; \
+  cp -a /app/dist/. /usr/share/nginx/html; \
 fi; \
 nginx -g 'daemon off;'"]
