@@ -3,7 +3,7 @@ module.exports = {
     {
       name: 'znode-backend',
       script: 'dist/index.js',
-      cwd: '/home/znode-demo/htdocs/demo.znode.app/backend',
+      cwd: '/home/znode-demo/htdocs/znode/backend',
       instances: 1,
       autorestart: true,
       watch: false,
