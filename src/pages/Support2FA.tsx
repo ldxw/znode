@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 import RichTextEditor from "@/components/RichTextEditor";
 import { HtmlContentWithImages } from "@/components/ImageLightbox";
 
-const API_URL = import.meta.env.VITE_API_URL || "https://demo.znode.app";
+const API_URL = import.meta.env.VITE_API_URL;
 
 interface TicketReply {
   id: string;
