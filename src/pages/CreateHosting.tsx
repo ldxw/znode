@@ -18,9 +18,11 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
+import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { usePageTitle } from "@/contexts/SiteContext";
+import { useTurnstileConfig, isTurnstileRequired } from "@/hooks/useTurnstile";
 
 interface AllowedDomain {
   id: string;
@@ -58,6 +60,12 @@ const CreateHosting = () => {
   const { t } = useLanguage();
   usePageTitle(t.hosting?.createNew || 'Create Hosting');
   
+  // Turnstile configuration
+  const { data: turnstileConfig } = useTurnstileConfig();
+  const requiresTurnstile = isTurnstileRequired(turnstileConfig, 'createHosting');
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileKey, setTurnstileKey] = useState(0);
+  
   // Common state
   const [activeTab, setActiveTab] = useState<"subdomain" | "custom">("subdomain");
   const [isChecking, setIsChecking] = useState(false);
@@ -74,6 +82,16 @@ const CreateHosting = () => {
   const [nsCheckResult, setNsCheckResult] = useState<NameserverCheckResult | null>(null);
   const [isCheckingNs, setIsCheckingNs] = useState(false);
   const [requiredNameservers, setRequiredNameservers] = useState<string[]>([]);
+
+  // Turnstile handlers
+  const resetTurnstile = () => {
+    setTurnstileToken(null);
+    setTurnstileKey(prev => prev + 1);
+  };
+
+  const handleTurnstileVerify = (token: string) => {
+    setTurnstileToken(token);
+  };
 
   // Fetch allowed domains
   const { data: domainsData, isLoading: loadingDomains } = useQuery({
@@ -220,10 +238,12 @@ const CreateHosting = () => {
           customDomain: customDomain,
           isCustomDomain: true,
           label,
+          turnstileToken: turnstileToken || undefined,
         } : {
           subdomain,
           domain: selectedDomain,
           label,
+          turnstileToken: turnstileToken || undefined,
         }),
       });
       const data = await response.json();
@@ -246,6 +266,7 @@ const CreateHosting = () => {
         description: error.message,
         variant: "destructive",
       });
+      resetTurnstile();
     },
   });
 
@@ -623,11 +644,24 @@ const CreateHosting = () => {
                 </div>
               </div>
 
+              {/* Turnstile captcha */}
+              {requiresTurnstile && (
+                <div className="border-t border-border pt-6">
+                  <TurnstileWidget
+                    key={turnstileKey}
+                    siteKey={turnstileConfig?.siteKey || ""}
+                    onVerify={handleTurnstileVerify}
+                    onError={resetTurnstile}
+                    onExpire={resetTurnstile}
+                  />
+                </div>
+              )}
+
               <Button
                 type="submit"
                 size="lg"
                 className="w-full"
-                disabled={createHostingMutation.isPending}
+                disabled={createHostingMutation.isPending || (requiresTurnstile && !turnstileToken)}
               >
                 {createHostingMutation.isPending ? (
                   <>
