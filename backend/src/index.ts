@@ -256,7 +256,7 @@ async function startServer() {
       const seoSettings = seoSetting?.value ? { ...defaultSettings, ...JSON.parse(seoSetting.value) } : defaultSettings;
 
       robotsTxt = seoSettings.robotsTxt || defaultRobots;
-      const siteUrl = seoSettings.canonicalUrl || process.env.FRONTEND_URL || 'https://demo.znode.app';
+      const siteUrl = seoSettings.canonicalUrl || process.env.FRONTEND_URL;
       robotsTxt = robotsTxt.replace(/\{\{SITE_URL\}\}/g, siteUrl);
       fs.writeFileSync(pathModule.join(frontendDist, 'robots.txt'), robotsTxt, 'utf-8');
 
