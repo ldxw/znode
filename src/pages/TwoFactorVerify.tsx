@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 
-const API_URL = import.meta.env.VITE_API_URL || "https://demo.znode.app";
+const API_URL = import.meta.env.VITE_API_URL;
 
 const TwoFactorVerify = () => {
   const [code, setCode] = useState("");
