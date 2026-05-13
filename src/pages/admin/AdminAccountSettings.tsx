@@ -46,7 +46,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import AdminLayout from "@/components/admin/AdminLayout";
 import RichTextEditor from "@/components/RichTextEditor";
 
-const API_URL = import.meta.env.VITE_API_URL || "https://demo.znode.app";
+const API_URL = import.meta.env.VITE_API_URL;
 
 const AdminAccountSettings = () => {
   const { t } = useLanguage();
