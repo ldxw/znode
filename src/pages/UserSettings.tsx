@@ -43,7 +43,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 
-const API_URL = import.meta.env.VITE_API_URL || "https://demo.znode.app";
+const API_URL = import.meta.env.VITE_API_URL;
 
 const UserSettings = () => {
   const { t } = useLanguage();
