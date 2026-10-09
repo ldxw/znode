@@ -23,17 +23,45 @@ Prebuilt images are published to GHCR by the `docker-build.yml` workflow (manual
 
 ```shell
 cd docker
-cp .env.example .env    # fill in MYSQL_*, FRONTEND_URL, TZ, DATABASE_URL ... (comments explain each)
+cp .env.example .env    # fill in MYSQL_*, SITE_URL, FRONTEND_URL, TZ, DATABASE_URL ... (comments explain each)
 mkdir -p data/mysql     # the MySQL bind mount points here; the directory must exist before `up`
 docker compose pull
 docker compose up -d
+
+# First run only — in this order:
+#   1) create/update the database tables
+docker compose --profile migrate run --rm migrate
+#   2) write the container's /app/.env and create the admin account
+docker compose --profile init run --rm install
+#   3) restart the backend so it picks up the freshly written .env
+docker compose up -d --force-recreate backend
 ```
+
+The admin password is printed by step 2 and shown **only once** — save it right away. To pick it
+yourself, set `ADMIN_PASSWORD` in `.env` instead (then step 2 will not echo it).
+
+After that, open your site, log in with the admin account, and you are done.
+
+### Why the `init` step exists
+
+The backend image ships **without the Prisma CLI** (that is what makes it ~121 MB smaller), so the
+application's own web installer — which shells out to `npx prisma db push` — cannot run inside it.
+The one-shot `init` service does that work instead: it fills in the container's `/app/.env`
+(JWT/session secrets, database URL, site URL) and creates the admin account.
+
+Two things that trip people up, both learned the hard way on a real deployment:
+
+- The app decides whether it is *installed* by reading **`/app/.env` inside the container**, not the
+  environment variables — that is why `docker/.env` is bind-mounted to `/app/.env`. If it is missing,
+  the app shows its setup wizard even though everything else is configured.
+- Editing `docker/.env` with `sed -i` **replaces the file's inode**, and a bind-mounted file keeps
+  pointing at the old one. The container therefore keeps reading stale content; recreate the backend
+  (`docker compose up -d --force-recreate backend`) after editing.
 
 ### Applying schema changes
 
-The backend image does **not** run `prisma db push` on start-up any more (keeping the Prisma CLI out of
-the runtime image makes it about 120 MB smaller). After upgrading to a version whose Prisma schema
-changed, run the one-shot migration service once:
+After upgrading to a version whose Prisma schema changed, run the one-shot migration service once
+(do this **before** starting the new backend):
 
 ```shell
 cd docker

@@ -40,7 +40,9 @@ async function isInstalled(): Promise<{ installed: boolean; reason: string }> {
 
   // Check 2: DATABASE_URL is configured
   const envContent = fs.readFileSync(ENV_PATH, 'utf-8');
-  const dbUrlMatch = envContent.match(/DATABASE_URL="?([^"\n]+)"?/);
+  // 注意：必须锚定行首 —— 否则 .env 里任何一句提到 DATABASE_URL 的注释/说明文字
+  // 都会被当成真值（注释里的示例连接串会先被匹配到，导致「凭据无效」的假故障）。
+  const dbUrlMatch = envContent.match(/^DATABASE_URL="?([^"\n]+)"?/m);
   if (!dbUrlMatch || dbUrlMatch[1].includes('username:password')) {
     return { installed: false, reason: 'no_database' };
   }

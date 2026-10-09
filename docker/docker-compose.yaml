@@ -8,6 +8,11 @@ services:
     restart: unless-stopped
     # 让容器里 PID 1 正确回收僵尸进程、把信号转给 node（否则 stop 时可能收不到 SIGTERM）
     init: true
+    # 应用检查的是容器内的 /app/.env 文件（不是环境变量），必须挂进去，
+    # 否则它会一直认为"未安装"并弹安装向导。相对路径按本文件所在目录解析，
+    # .env 就在 docker/ 下，所以写 ./.env。
+    volumes:
+      - ./.env:/app/.env
     env_file:
       - ./.env
     environment:
@@ -80,6 +85,36 @@ services:
       - ./.env
     environment:
       TZ: ${TZ:-Asia/Shanghai}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      znode_net:
+
+  # ------------------------------
+  # 首次初始化（全新部署只需跑一次）
+  #   docker compose --profile init run --rm install
+  # 做两件事：补齐容器内的 /app/.env（密钥、连接串、站点地址）+ 建管理员账号。
+  # 管理员密码会打印在【执行这条命令的终端】里，之后不再显示，请立即记录；
+  # 也可以先在 .env 里设 ADMIN_PASSWORD 自己指定。
+  # 用 root 跑：要写挂载进来的 .env 文件。
+  # ------------------------------
+  install:
+    image: ghcr.io/ldxw/znode-backend:latest
+    profiles: ["init"]
+    user: root
+    init: true
+    restart: "no"
+    entrypoint: ["node", "/app/scripts/docker-install.mjs"]
+    env_file:
+      - ./.env
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      INSTALL_ENV_PATH: /app/.env
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      SITE_URL: ${SITE_URL:-}
+    volumes:
+      - ./.env:/app/.env
     depends_on:
       mysql:
         condition: service_healthy

@@ -90,6 +90,10 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
 
+# 首次初始化脚本：compose 的 init profile / migrate 服务用它
+# （生成密钥写 /app/.env + 建管理员；网页安装向导在无 Prisma CLI 的运行时里跑不通）
+COPY --from=builder /app/scripts/docker-install.mjs ./scripts/docker-install.mjs
+
 # 上传目录：默认值算出来是 /public/uploads（容器根目录，非 root 用户写不进去），
 # 这里显式指到 /app 下并交给 node 用户；要持久化就在 compose 里给这个路径挂卷。
 ENV UPLOADS_DIR=/app/public/uploads
