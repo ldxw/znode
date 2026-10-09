@@ -1,14 +1,22 @@
 # syntax=docker/dockerfile:1
 
 # ---------- Stage 1: 只装「运行期」依赖 ----------
-# prisma 已挪到 dependencies（容器启动时要跑 prisma db push）。
-# 这样 tsup / typescript / 各种 @types 都不会进最终镜像。
+# 装完顺手把「只服务于 Prisma CLI」的部分删掉：prisma 本身、它的引擎目录、
+# effect + @prisma/config（CLI 的配置加载器）、typescript。
+# 理由：运行时真正用的查询引擎在生成出来的 .prisma/client/ 里自带一份
+# （已实测：删掉这些之后 PrismaClient 仍能加载引擎，只是连不上数据库）。
+# 这一步约省 121M。确实需要 prisma db push 的场景用文件最后的 migrator 阶段。
 FROM node:22-bookworm-slim AS prod-deps
 WORKDIR /app
 
 COPY backend/package.json backend/package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --omit=dev --no-audit --no-fund
+    npm ci --omit=dev --no-audit --no-fund \
+    && rm -rf node_modules/prisma \
+              node_modules/@prisma/engines \
+              node_modules/@prisma/config \
+              node_modules/effect \
+              node_modules/typescript
 
 # ---------- Stage 2: 构建后端 ----------
 # node:22（20 已在 2026-04 EOL）；bookworm（bullseye 已 EOL，apt 源失效会让构建随机失败）
@@ -35,14 +43,14 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3002
 
-# 运行期依赖：只带生产依赖（不含 devDependencies）
+# 运行期依赖：只带生产依赖，并已在 prod-deps 里剪掉 Prisma CLI 相关部分
 COPY --from=prod-deps /app/node_modules ./node_modules
 
 # 应用产物 + Prisma schema
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 
-# Prisma 生成的客户端在 builder 里，覆盖到上面那份 node_modules 上
+# 生成好的 Prisma 客户端（含它自带的那份查询引擎）在 builder 里，覆盖上去
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
 
@@ -61,5 +69,24 @@ EXPOSE 3002
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
     CMD node -e "require('http').get('http://127.0.0.1:'+(process.env.PORT||3002)+'/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
 
-# 启动：同步表结构（构建期已 generate，跳过重复生成）后起服务
-ENTRYPOINT ["/bin/sh", "-c", "./node_modules/.bin/prisma db push --skip-generate && node /app/dist/index.js"]
+# 启动服务。表结构同步不放在这里了 —— 运行时镜像已经没有 Prisma CLI，
+# 改用下面的 migrator 镜像 / compose 里的 migrate 服务。
+CMD ["node", "/app/dist/index.js"]
+
+# ---------- Stage 4: 迁移镜像（单独 target，只有 prisma CLI + schema）----------
+# 用法：docker compose --profile migrate run --rm migrate
+# 只在表结构有变化时跑一次，不参与日常启动。
+FROM node:22-bookworm-slim AS migrator
+WORKDIR /app
+
+# 版本和 backend/package.json 里 prisma 的声明保持一致
+ARG PRISMA_VERSION=^6.19.3
+
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --no-save --no-audit --no-fund "prisma@${PRISMA_VERSION}"
+
+COPY backend/prisma ./prisma
+
+ENV NODE_ENV=production
+
+ENTRYPOINT ["/app/node_modules/.bin/prisma", "db", "push", "--skip-generate"]

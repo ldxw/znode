@@ -107,6 +107,23 @@ jobs:
             . \
             --push
 
+      # ------------------------------
+      # 迁移镜像（Dockerfile 的 migrator 阶段）：只包含 prisma CLI + schema，
+      # 需要同步表结构时手动跑一次，不参与日常启动。
+      # ------------------------------
+      - name: 构建并推送迁移镜像（${{ matrix.arch }}）
+        if: github.event.inputs.BUILD_TARGET != 'frontend'
+        run: |
+          docker buildx build \
+            --platform ${{ matrix.platform }} \
+            --target migrator \
+            --cache-from type=gha,scope=znode-migrate-${{ matrix.arch }} \
+            --cache-to type=gha,mode=max,scope=znode-migrate-${{ matrix.arch }} \
+            -t ghcr.io/${{ github.repository_owner }}/znode-backend-migrate:build-${{ matrix.arch }} \
+            -f docker/Dockerfile.backend \
+            . \
+            --push
+
   # ------------------------------
   # 把两个架构的镜像合成多架构 manifest：VERSION（+ 可选 latest）
   # ------------------------------
@@ -137,6 +154,17 @@ jobs:
         if: github.event.inputs.BUILD_TARGET != 'frontend'
         run: |
           SRC="ghcr.io/${{ github.repository_owner }}/znode-backend"
+          TAGS="-t $SRC:${{ github.event.inputs.VERSION }}"
+          if [ "${{ github.event.inputs.PUSH_LATEST }}" = "true" ]; then
+            TAGS="$TAGS -t $SRC:latest"
+          fi
+          docker buildx imagetools create $TAGS "$SRC:build-amd64" "$SRC:build-arm64"
+          docker buildx imagetools inspect "$SRC:${{ github.event.inputs.VERSION }}"
+
+      - name: 合并迁移镜像
+        if: github.event.inputs.BUILD_TARGET != 'frontend'
+        run: |
+          SRC="ghcr.io/${{ github.repository_owner }}/znode-backend-migrate"
           TAGS="-t $SRC:${{ github.event.inputs.VERSION }}"
           if [ "${{ github.event.inputs.PUSH_LATEST }}" = "true" ]; then
             TAGS="$TAGS -t $SRC:latest"

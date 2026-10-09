@@ -6,11 +6,14 @@ services:
     image: ghcr.io/ldxw/znode-backend:latest
     container_name: znode-backend
     restart: unless-stopped
-    # 后端自己的配置（DATABASE_URL、各 OAuth key 等）放这里
+    # 让容器里 PID 1 正确回收僵尸进程、把信号转给 node（否则 stop 时可能收不到 SIGTERM）
+    init: true
     env_file:
       - ./.env
     environment:
       PORT: "3002"
+      # 时区：备份定时任务（node-cron）按这个走，不设就是 UTC
+      TZ: ${TZ:-Asia/Shanghai}
       # 允许跨域的前端域名，多个用英文逗号分隔；前后端同域部署时可以不设
       FRONTEND_URL: ${FRONTEND_URL:-}
     # 只给 compose 内部网络用，不对外发布端口（需要从宿主机直连调试时再打开）
@@ -24,6 +27,10 @@ services:
     networks:
       znode_net:
         ipv4_address: 172.30.2.20
+    # 资源上限：按你服务器的内存调，去掉注释即生效（不确定就先别开）
+    #   2G 内存的机器建议 backend 512m、mysql 1g、frontend 128m
+    # mem_limit: 512m
+    # pids_limit: 512
     # 日志轮转，避免 json 日志把磁盘写满
     logging:
       driver: json-file
@@ -38,9 +45,11 @@ services:
     image: ghcr.io/ldxw/znode-frontend:latest
     container_name: znode-frontend
     restart: unless-stopped
+    init: true
     environment:
       # 浏览器访问后端的地址；留空 = 同域反代（nginx 把 /api 转给 backend:3002）
       API_URL: ${API_URL:-}
+      TZ: ${TZ:-Asia/Shanghai}
     ports:
       - "80:80"
     depends_on:
@@ -49,11 +58,33 @@ services:
     networks:
       znode_net:
         ipv4_address: 172.30.2.10
+    # mem_limit: 128m
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "3"
+
+  # ------------------------------
+  # 表结构同步（一次性，不参与日常启动）
+  # 运行时镜像里已经没有 Prisma CLI，所以表结构变化时要手动跑一次：
+  #   docker compose --profile migrate run --rm migrate
+  # 它是独立 target 构建的迁移镜像（docker/Dockerfile.backend 的 migrator 阶段）。
+  # ------------------------------
+  migrate:
+    image: ghcr.io/ldxw/znode-backend-migrate:latest
+    profiles: ["migrate"]
+    init: true
+    restart: "no"
+    env_file:
+      - ./.env
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      znode_net:
 
   # ------------------------------
   # MariaDB 数据库（备用，暂未启用）
@@ -85,11 +116,13 @@ services:
     image: mysql:8.0.36
     container_name: znode-mysql
     restart: unless-stopped
+    init: true
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?请在 docker/.env 里设置 MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-znode}
       MYSQL_USER: ${MYSQL_USER:-znode}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:?请在 docker/.env 里设置 MYSQL_PASSWORD}
+      TZ: ${TZ:-Asia/Shanghai}
     # 数据库不需要对外发布端口（要直连调试时再打开，并只绑本机）
     # ports:
     #   - "127.0.0.1:3306:3306"
@@ -104,6 +137,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+    # mem_limit: 1g
     logging:
       driver: json-file
       options:

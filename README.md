@@ -11,6 +11,36 @@ A modern free hosting management panel built with React + Node.js. Integrates wi
   <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="License">
 </p>
 
+## Docker deployment
+
+Prebuilt images are published to GHCR by the `docker-build.yml` workflow (manual trigger):
+
+| Image | What it is |
+| --- | --- |
+| `ghcr.io/ldxw/znode-frontend` | nginx serving the built SPA (same-domain reverse proxy to the API by default) |
+| `ghcr.io/ldxw/znode-backend` | the API (no Prisma CLI inside — see below) |
+| `ghcr.io/ldxw/znode-backend-migrate` | one-shot image that only runs `prisma db push` |
+
+```shell
+cd docker
+cp .env.example .env    # fill in MYSQL_*, FRONTEND_URL, TZ, DATABASE_URL ... (comments explain each)
+docker compose pull
+docker compose up -d
+```
+
+### Applying schema changes
+
+The backend image does **not** run `prisma db push` on start-up any more (keeping the Prisma CLI out of
+the runtime image makes it about 120 MB smaller). After upgrading to a version whose Prisma schema
+changed, run the one-shot migration service once:
+
+```shell
+cd docker
+docker compose --profile migrate run --rm migrate
+```
+
+If you skip it, the tables will be missing and the API will report database errors.
+
 ## Features
 
 **For Users**
