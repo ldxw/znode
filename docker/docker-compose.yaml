@@ -1,0 +1,124 @@
+services:
+  # ------------------------------
+  # 后端服务
+  backend:
+    image: ghcr.io/ldxw/znode-backend:latest
+    container_name: znode-backend
+    restart: unless-stopped
+    environment:
+      FRONTEND_URL: https://example.com
+    ports:
+      - "3002:3002"
+    env_file:
+      - ./.env    # 后端配置文件挂载
+    # volumes:
+    #   - ./backend:/app
+    # depends_on:
+    #   - mariadb
+    depends_on:
+      - mysql
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+    # networks:
+    #   - znode-net
+    networks:
+      znode_net:
+        ipv4_address: 172.30.2.20
+
+  # ------------------------------
+  # 前端服务
+  frontend:
+    image: ghcr.io/ldxw/znode-frontend:latest
+    container_name: znode-frontend
+    restart: unless-stopped
+    environment:
+      API_URL: https://api.example.com
+    # volumes:
+      # 开发模式可挂载源码
+    #   - ./frontend:/usr/share/nginx/html
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    # networks:
+    #   - znode-net
+    networks:
+      znode_net:
+        ipv4_address: 172.30.2.10
+
+  # ------------------------------
+  # MariaDB 数据库
+  # mariadb:
+  #   image: mariadb:11
+  #   container_name: znode-mariadb
+  #   restart: unless-stopped
+  #   environment:
+  #     MYSQL_ROOT_PASSWORD: example-root-pwd
+  #     MYSQL_DATABASE: znode
+  #     MYSQL_USER: znode
+  #     MYSQL_PASSWORD: example-user-ped
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -pexample-root-pwd"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #     start_period: 5s
+    # ports:
+    #   - "3306:3306"   # 可选，宿主机映射
+  #   volumes:
+  #     - mariadb_data:/var/lib/mysql
+    # networks:
+    #   - znode-net
+  #   networks:
+  #     znode_net:
+  #       ipv4_address: 172.30.2.30
+
+  mysql:
+    # 替换为官方 mysql:8.0 或 mysql:8.0.36-arm64v8
+    image: mysql:8.0.36
+    container_name: znode-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: example-root-pwd
+      MYSQL_DATABASE: znode
+      MYSQL_USER: znode
+      MYSQL_PASSWORD: example-user-pwd
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    # networks:
+    #   - znode-net
+    networks:
+      znode_net:
+        ipv4_address: 172.30.2.40
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -pexample-root-pwd"]
+      interval: 10s
+      retries: 10
+      start_period: 5s
+
+# ------------------------------
+# 网络和卷
+networks:
+  znode_net:
+    name: znode_net
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.2.0/24
+          gateway: 172.30.2.1
+
+volumes:
+  # mariadb_data:
+  #   driver: local
+  #   driver_opts:
+  #     type: none
+  #     o: bind
+  #     device: ./data/mariadb
+  mysql_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/mysql

@@ -1,0 +1,93 @@
+name: 构建并推送 ZNode Docker 镜像
+
+on:
+  workflow_dispatch:
+    inputs:
+      VERSION:
+        description: '镜像版本号，例如 1.0.2'
+        required: false
+        default: '1.0.2'
+      API_URL:
+        description: '前端 API 地址'
+        required: false
+        default: 'http://backend:3002'
+      FRONTEND_URL:
+        description: '后端跨域域名，逗号分隔'
+        required: false
+        default: ''
+      BUILD_TARGET:
+        description: '构建目标'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - frontend
+          - backend
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v3
+
+      - name: 设置 QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: 设置 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 登录 GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # ------------------------------
+      # 替换前端源码 API 地址
+      - name: 替换前端默认 API 地址
+        if: contains(github.event.inputs.BUILD_TARGET, 'frontend') || contains(github.event.inputs.BUILD_TARGET, 'all')
+        run: |
+          echo "查找前端源码中默认 API_URL 并替换为占位符 __API_URL__"
+          grep -Rl "http://localhost:3002" ./src | xargs sed -i "s|http://localhost:3002|__API_URL__|g"
+
+      # ------------------------------
+      # 替换后端 allowedOrigins 跨域
+      - name: 替换后端 allowedOrigins
+        if: contains(github.event.inputs.BUILD_TARGET, 'backend') || contains(github.event.inputs.BUILD_TARGET, 'all')
+        run: |
+          TARGET_FILE="./src/index.ts"
+          if [ -f "$TARGET_FILE" ]; then
+            sed -i "s|const allowedOrigins = .*|const allowedOrigins = ['http://localhost:5173','http://localhost:8080','http://localhost:8081', ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',').map(u=>u.trim()).filter(Boolean) : [])];|g" $TARGET_FILE
+            echo "✅ allowedOrigins 已替换为支持运行时多域名"
+          fi
+
+      # ------------------------------
+      # 构建前端镜像
+      - name: 构建前端镜像
+        if: contains(github.event.inputs.BUILD_TARGET, 'frontend') || contains(github.event.inputs.BUILD_TARGET, 'all')
+        run: |
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --build-arg API_URL="${{ github.event.inputs.API_URL }}" \
+            -t ghcr.io/${{ github.repository_owner }}/znode-frontend:${{ github.event.inputs.VERSION }} \
+            -t ghcr.io/${{ github.repository_owner }}/znode-frontend:latest \
+            -f docker/Dockerfile.frontend \
+            . \
+            --push
+
+      # ------------------------------
+      # 构建后端镜像
+      - name: 构建后端镜像
+        if: contains(github.event.inputs.BUILD_TARGET, 'backend') || contains(github.event.inputs.BUILD_TARGET, 'all')
+        run: |
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            -t ghcr.io/${{ github.repository_owner }}/znode-backend:${{ github.event.inputs.VERSION }} \
+            -t ghcr.io/${{ github.repository_owner }}/znode-backend:latest \
+            -f docker/Dockerfile.backend \
+            $GITHUB_WORKSPACE \
+            --push
