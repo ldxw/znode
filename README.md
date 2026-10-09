@@ -24,6 +24,7 @@ Prebuilt images are published to GHCR by the `docker-build.yml` workflow (manual
 ```shell
 cd docker
 cp .env.example .env    # fill in MYSQL_*, FRONTEND_URL, TZ, DATABASE_URL ... (comments explain each)
+mkdir -p data/mysql     # the MySQL bind mount points here; the directory must exist before `up`
 docker compose pull
 docker compose up -d
 ```

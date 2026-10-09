@@ -33,6 +33,10 @@ README*.md
 .DS_Store
 Thumbs.db
 
+# ── compose 的本地数据（MySQL 数据目录等，别塞进构建上下文）──────
+docker/data
+**/docker/data
+
 # ── 日志与临时文件 ──────────────────────────────────────────────
 *.log
 logs

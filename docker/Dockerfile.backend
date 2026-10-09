@@ -43,6 +43,12 @@ RUN npx prisma generate \
 FROM node:22-bookworm-slim AS migrator
 WORKDIR /app
 
+# 必须装 openssl：slim 镜像里没有它，Prisma 探测不到 libssl 版本就会默认按
+# openssl-1.1.x 去找引擎，而引擎是按 debian-openssl-3.0.x 生成的 → 直接找不到。
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends openssl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 # 版本和 backend/package.json 里 prisma 的声明保持一致
 ARG PRISMA_VERSION=^6.19.3
 
@@ -60,6 +66,15 @@ ENTRYPOINT ["/app/node_modules/.bin/prisma", "db", "push", "--skip-generate"]
 FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
 
+# 必须装 openssl（放在 COPY 之前，这样改源码/依赖时这一层还能命中缓存）。
+# 不装的后果是运行时报：
+#   Prisma Client could not locate the Query Engine for runtime "debian-openssl-1.1.x"
+#   Prisma Client was generated for "debian-openssl-3.0.x", but the actual deployment required "debian-openssl-1.1.x"
+# 进程会直接退出，容器一直不健康。
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends openssl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 # 生产模式：Express / 各库都会按这个走生产分支
 ENV NODE_ENV=production
 ENV PORT=3002
@@ -76,7 +91,7 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
 
 # 上传目录：默认值算出来是 /public/uploads（容器根目录，非 root 用户写不进去），
-# 这里显式指到 /app 下并一起交给 node 用户；要持久化就在 compose 里给这个路径挂卷。
+# 这里显式指到 /app 下并交给 node 用户；要持久化就在 compose 里给这个路径挂卷。
 ENV UPLOADS_DIR=/app/public/uploads
 # 只把上传目录交给 node 用户：node_modules / dist 运行时是只读的，没必要递归 chown。
 # （实测：递归 chown 整个 /app 要 70 秒，只 chown 上传目录不到 1 秒）

@@ -1,0 +1,9 @@
+# MySQL 数据目录：只保留这里的占位文件，数据本身不进 git。
+#
+# 这个目录【必须存在】：compose 把 mysql 的数据卷 bind 到这里（docker-compose.yaml 的
+# driver_opts.device = ./data/mysql）。宿主机目录不存在时 Docker 不会自动创建，会直接报
+#   failed to mount local volume: ... no such file or directory
+# 全新克隆的仓库靠这个被 git 跟踪的 .gitignore 把目录带出来；
+# 手工拷贝代码时记得 mkdir -p docker/data/mysql。
+*
+!.gitignore
