@@ -2,7 +2,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Client as FTPClient } from 'basic-ftp';
 import SFTPClient from 'ssh2-sftp-client';
-import { google } from 'googleapis';
+import { OAuth2Client } from 'google-auth-library';
+import { drive as googleDrive } from '@googleapis/drive';
 import { Readable } from 'stream';
 
 const fsPromises = fs.promises;
@@ -225,14 +226,14 @@ export class GoogleDriveStorageAdapter implements StorageAdapter {
       throw new Error('Google OAuth credentials not configured in system settings');
     }
 
-    const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
+    const oauth2Client = new OAuth2Client(clientId, clientSecret);
     oauth2Client.setCredentials({
       refresh_token: this.config.googleDriveRefreshToken,
       access_token: this.config.googleDriveAccessToken,
       expiry_date: this.config.googleDriveTokenExpiry?.getTime(),
     });
 
-    this.drive = google.drive({ version: 'v3', auth: oauth2Client });
+    this.drive = googleDrive({ version: 'v3', auth: oauth2Client });
     return this.drive;
   }
 
@@ -419,12 +420,12 @@ export async function testStorageConnection(config: StorageConfig): Promise<{ su
           return { success: false, error: 'Google OAuth not configured in system settings' };
         }
 
-        const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
+        const oauth2Client = new OAuth2Client(clientId, clientSecret);
         oauth2Client.setCredentials({
           refresh_token: config.googleDriveRefreshToken,
         });
         
-        const drive = google.drive({ version: 'v3', auth: oauth2Client });
+        const drive = googleDrive({ version: 'v3', auth: oauth2Client });
         // Test by getting about info
         await drive.about.get({ fields: 'user' });
         return { success: true };

@@ -1,38 +1,65 @@
-FROM node:20-bullseye AS builder
+# syntax=docker/dockerfile:1
 
-# 镜像内部工作目录
+# ---------- Stage 1: 只装「运行期」依赖 ----------
+# prisma 已挪到 dependencies（容器启动时要跑 prisma db push）。
+# 这样 tsup / typescript / 各种 @types 都不会进最终镜像。
+FROM node:22-bookworm-slim AS prod-deps
 WORKDIR /app
 
-# 复制依赖文件
-COPY backend/package*.json ./
+COPY backend/package.json backend/package-lock.json ./
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --omit=dev --no-audit --no-fund
 
-# 安装依赖
-ENV NODE_ENV=development
-RUN npm install
+# ---------- Stage 2: 构建后端 ----------
+# node:22（20 已在 2026-04 EOL）；bookworm（bullseye 已 EOL，apt 源失效会让构建随机失败）
+FROM node:22-bookworm AS builder
+WORKDIR /app
 
-# 复制后端源码
+# 先装依赖（缓存友好：改源码不会重装）
+COPY backend/package.json backend/package-lock.json ./
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --no-audit --no-fund
+
+# 再拷源码
 COPY backend ./
 
-# Prisma 生成 + 构建
-RUN npx prisma generate
-RUN node scripts/build.mjs
+# Prisma 客户端生成 + 打包（tsup）
+RUN npx prisma generate \
+    && node scripts/build.mjs
 
-# ---------- Stage 2: 轻量生产镜像 ----------
-FROM node:20-bullseye-slim
+# ---------- Stage 3: 运行时（slim，不带编译工具链）----------
+FROM node:22-bookworm-slim
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y curl wget \
-    && rm -rf /var/lib/apt/lists/*
+# 生产模式：Express / 各库都会按这个走生产分支
+ENV NODE_ENV=production
+ENV PORT=3002
 
-# 复制构建好的 dist 和 node_modules
+# 运行期依赖：只带生产依赖（不含 devDependencies）
+COPY --from=prod-deps /app/node_modules ./node_modules
+
+# 应用产物 + Prisma schema
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
 
-# 设置端口
-ENV PORT=3002
+# Prisma 生成的客户端在 builder 里，覆盖到上面那份 node_modules 上
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
+
+# 上传目录：默认值算出来是 /public/uploads（容器根目录，非 root 用户写不进去），
+# 这里显式指到 /app 下并一起交给 node 用户；要持久化就在 compose 里给这个路径挂卷。
+ENV UPLOADS_DIR=/app/public/uploads
+RUN mkdir -p /app/public/uploads \
+    && chown -R node:node /app
+
+# 不用 root 跑应用
+USER node
+
 EXPOSE 3002
 
-# 初始化数据库和启动
-ENTRYPOINT ["/bin/sh", "-c", "\
-npx prisma db push && node /app/dist/index.js"]
+# 用 node 自己发探针，省掉 curl / wget（少两个 apt 包）
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD node -e "require('http').get('http://127.0.0.1:'+(process.env.PORT||3002)+'/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
+
+# 启动：同步表结构（构建期已 generate，跳过重复生成）后起服务
+ENTRYPOINT ["/bin/sh", "-c", "./node_modules/.bin/prisma db push --skip-generate && node /app/dist/index.js"]

@@ -39,11 +39,16 @@ const app = express();
 const PORT = process.env.PORT || 3002;
 
 // CORS configuration
+// FRONTEND_URL 支持逗号分隔的多个域名（前后端同域部署时不用设）；
+// 末尾的斜杠会被去掉，避免 https://a.com/ 与 https://a.com 匹配不上
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:8080',
   'http://localhost:8081',
-  process.env.FRONTEND_URL,
+  ...(process.env.FRONTEND_URL || '')
+    .split(',')
+    .map((u) => u.trim().replace(/\/+$/, ''))
+    .filter(Boolean),
 ].filter(Boolean) as string[];
 
 app.use(cors({

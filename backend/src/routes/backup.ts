@@ -1,7 +1,8 @@
 import { Router, Response } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { adminMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
-import { google } from 'googleapis';
+import { OAuth2Client } from 'google-auth-library';
+import { drive as googleDrive } from '@googleapis/drive';
 import { 
   createBackup, 
   restoreBackup, 
@@ -29,7 +30,7 @@ function getGoogleOAuth2Client() {
     throw new Error('Google OAuth credentials not configured');
   }
   
-  return new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+  return new OAuth2Client(clientId, clientSecret, redirectUri);
 }
 
 // Google Drive OAuth - Get auth URL
@@ -167,7 +168,7 @@ router.get('/google/folders', adminMiddleware, async (req: AuthenticatedRequest,
       refresh_token: config.googleDriveRefreshToken,
     });
     
-    const drive = google.drive({ version: 'v3', auth: oauth2Client });
+    const drive = googleDrive({ version: 'v3', auth: oauth2Client });
     
     const response = await drive.files.list({
       q: "mimeType='application/vnd.google-apps.folder' and trashed=false",

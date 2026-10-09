@@ -8,13 +8,9 @@ on:
         required: false
         default: '1.0.2'
       API_URL:
-        description: '前端 API 地址'
+        description: '前端 API 地址占位符（镜像启动时用同名环境变量覆盖，留空则走同域反代）'
         required: false
-        default: 'http://backend:3002'
-      FRONTEND_URL:
-        description: '后端跨域域名，逗号分隔'
-        required: false
-        default: ''
+        default: '__API_URL__'
       BUILD_TARGET:
         description: '构建目标'
         required: false
@@ -24,17 +20,48 @@ on:
           - all
           - frontend
           - backend
+      PUSH_LATEST:
+        description: '同时更新 latest 标签（分支上试构建时建议选 false）'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+# 推 GHCR 需要 packages:write（不再依赖仓库默认权限）
+permissions:
+  contents: read
+  packages: write
+
+# 同一分支不重复排队构建
+concurrency:
+  group: docker-build-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
+  # ------------------------------
+  # 两个架构各用【原生 runner】构建（amd64 用 ubuntu-latest，arm64 用免费的 ARM runner），
+  # 不再用 QEMU 模拟 arm64 —— 构建时间能砍掉一大半。
+  # 每个架构先推一个临时 tag（build-amd64 / build-arm64），下面 merge 任务再合成多架构 manifest。
+  # ------------------------------
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            platform: linux/amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
+
+    runs-on: ${{ matrix.runner }}
 
     steps:
       - name: 检出代码
-        uses: actions/checkout@v3
-
-      - name: 设置 QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: actions/checkout@v4
 
       - name: 设置 Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -47,47 +74,72 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # ------------------------------
-      # 替换前端源码 API 地址
-      - name: 替换前端默认 API 地址
-        if: contains(github.event.inputs.BUILD_TARGET, 'frontend') || contains(github.event.inputs.BUILD_TARGET, 'all')
-        run: |
-          echo "查找前端源码中默认 API_URL 并替换为占位符 __API_URL__"
-          grep -Rl "http://localhost:3002" ./src | xargs sed -i "s|http://localhost:3002|__API_URL__|g"
-
+      # 前端镜像
+      # API 地址用构建参数注入占位符 __API_URL__（构建期不改源码），
+      # 容器启动时由 entrypoint 替换成 API_URL 的值。
       # ------------------------------
-      # 替换后端 allowedOrigins 跨域
-      - name: 替换后端 allowedOrigins
-        if: contains(github.event.inputs.BUILD_TARGET, 'backend') || contains(github.event.inputs.BUILD_TARGET, 'all')
-        run: |
-          TARGET_FILE="./src/index.ts"
-          if [ -f "$TARGET_FILE" ]; then
-            sed -i "s|const allowedOrigins = .*|const allowedOrigins = ['http://localhost:5173','http://localhost:8080','http://localhost:8081', ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',').map(u=>u.trim()).filter(Boolean) : [])];|g" $TARGET_FILE
-            echo "✅ allowedOrigins 已替换为支持运行时多域名"
-          fi
-
-      # ------------------------------
-      # 构建前端镜像
-      - name: 构建前端镜像
-        if: contains(github.event.inputs.BUILD_TARGET, 'frontend') || contains(github.event.inputs.BUILD_TARGET, 'all')
+      - name: 构建并推送前端镜像（${{ matrix.arch }}）
+        if: github.event.inputs.BUILD_TARGET != 'backend'
         run: |
           docker buildx build \
-            --platform linux/amd64,linux/arm64 \
-            --build-arg API_URL="${{ github.event.inputs.API_URL }}" \
-            -t ghcr.io/${{ github.repository_owner }}/znode-frontend:${{ github.event.inputs.VERSION }} \
-            -t ghcr.io/${{ github.repository_owner }}/znode-frontend:latest \
+            --platform ${{ matrix.platform }} \
+            --build-arg VITE_API_URL="${{ github.event.inputs.API_URL }}" \
+            --cache-from type=gha,scope=znode-frontend-${{ matrix.arch }} \
+            --cache-to type=gha,mode=max,scope=znode-frontend-${{ matrix.arch }} \
+            -t ghcr.io/${{ github.repository_owner }}/znode-frontend:build-${{ matrix.arch }} \
             -f docker/Dockerfile.frontend \
             . \
             --push
 
       # ------------------------------
-      # 构建后端镜像
-      - name: 构建后端镜像
-        if: contains(github.event.inputs.BUILD_TARGET, 'backend') || contains(github.event.inputs.BUILD_TARGET, 'all')
+      # 后端镜像
+      # FRONTEND_URL 由后端启动时读取（源码里已支持逗号分隔多域名），构建期不需要改代码。
+      # ------------------------------
+      - name: 构建并推送后端镜像（${{ matrix.arch }}）
+        if: github.event.inputs.BUILD_TARGET != 'frontend'
         run: |
           docker buildx build \
-            --platform linux/amd64,linux/arm64 \
-            -t ghcr.io/${{ github.repository_owner }}/znode-backend:${{ github.event.inputs.VERSION }} \
-            -t ghcr.io/${{ github.repository_owner }}/znode-backend:latest \
+            --platform ${{ matrix.platform }} \
+            --cache-from type=gha,scope=znode-backend-${{ matrix.arch }} \
+            --cache-to type=gha,mode=max,scope=znode-backend-${{ matrix.arch }} \
+            -t ghcr.io/${{ github.repository_owner }}/znode-backend:build-${{ matrix.arch }} \
             -f docker/Dockerfile.backend \
-            $GITHUB_WORKSPACE \
+            . \
             --push
+
+  # ------------------------------
+  # 把两个架构的镜像合成多架构 manifest：VERSION（+ 可选 latest）
+  # ------------------------------
+  merge:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 登录 GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 合并前端镜像
+        if: github.event.inputs.BUILD_TARGET != 'backend'
+        run: |
+          SRC="ghcr.io/${{ github.repository_owner }}/znode-frontend"
+          TAGS="-t $SRC:${{ github.event.inputs.VERSION }}"
+          if [ "${{ github.event.inputs.PUSH_LATEST }}" = "true" ]; then
+            TAGS="$TAGS -t $SRC:latest"
+          fi
+          docker buildx imagetools create $TAGS "$SRC:build-amd64" "$SRC:build-arm64"
+          docker buildx imagetools inspect "$SRC:${{ github.event.inputs.VERSION }}"
+
+      - name: 合并后端镜像
+        if: github.event.inputs.BUILD_TARGET != 'frontend'
+        run: |
+          SRC="ghcr.io/${{ github.repository_owner }}/znode-backend"
+          TAGS="-t $SRC:${{ github.event.inputs.VERSION }}"
+          if [ "${{ github.event.inputs.PUSH_LATEST }}" = "true" ]; then
+            TAGS="$TAGS -t $SRC:latest"
+          fi
+          docker buildx imagetools create $TAGS "$SRC:build-amd64" "$SRC:build-arm64"
+          docker buildx imagetools inspect "$SRC:${{ github.event.inputs.VERSION }}"

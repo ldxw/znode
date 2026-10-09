@@ -1,0 +1,45 @@
+# 构建上下文是【仓库根目录】（CI 里是 `docker buildx build -f docker/Dockerfile.xxx .`），
+# 所以忽略规则必须放在这里的根 .dockerignore。
+# docker/.dockerignore 和 backend/.dockerignore 只在把对应目录当上下文时才会生效，目前不生效。
+
+# ── 版本控制 / CI ────────────────────────────────────────────────
+.git
+.gitignore
+.github
+
+# ── 依赖与构建产物（镜像里会重新装、重新构建）────────────────────
+node_modules
+**/node_modules
+dist
+**/dist
+.vite
+**/.vite
+
+# ── 环境变量与密钥（绝不进镜像）──────────────────────────────────
+.env
+.env.*
+**/.env
+**/.env.*
+!**/.env.example
+
+# ── 文档 / 编辑器 / 系统文件 ─────────────────────────────────────
+CHANGELOG.md
+README.md
+INSTALL.md
+README*.md
+.vscode
+.idea
+*.swp
+.DS_Store
+Thumbs.db
+
+# ── 日志与临时文件 ──────────────────────────────────────────────
+*.log
+logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+coverage
+.cache
+tmp
+bun.lockb

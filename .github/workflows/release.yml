@@ -54,6 +54,7 @@ jobs:
             -x "backend/dist/*" \
             -x "backend/logs/*.json" \
             -x "backend/.env" \
+            -x "docker/.env" \
             -x ".env.production" \
             -x ".git/*" \
             -x ".github/*" \

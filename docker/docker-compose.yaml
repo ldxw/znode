@@ -1,105 +1,118 @@
 services:
   # ------------------------------
   # 后端服务
+  # ------------------------------
   backend:
     image: ghcr.io/ldxw/znode-backend:latest
     container_name: znode-backend
     restart: unless-stopped
-    environment:
-      FRONTEND_URL: https://example.com
-    ports:
-      - "3002:3002"
+    # 后端自己的配置（DATABASE_URL、各 OAuth key 等）放这里
     env_file:
-      - ./.env    # 后端配置文件挂载
-    # volumes:
-    #   - ./backend:/app
-    # depends_on:
-    #   - mariadb
+      - ./.env
+    environment:
+      PORT: "3002"
+      # 允许跨域的前端域名，多个用英文逗号分隔；前后端同域部署时可以不设
+      FRONTEND_URL: ${FRONTEND_URL:-}
+    # 只给 compose 内部网络用，不对外发布端口（需要从宿主机直连调试时再打开）
+    # ports:
+    #   - "3002:3002"
+    expose:
+      - "3002"
     depends_on:
-      - mysql
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
-    # networks:
-    #   - znode-net
+      mysql:
+        condition: service_healthy
     networks:
       znode_net:
         ipv4_address: 172.30.2.20
+    # 日志轮转，避免 json 日志把磁盘写满
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # ------------------------------
   # 前端服务
+  # ------------------------------
   frontend:
     image: ghcr.io/ldxw/znode-frontend:latest
     container_name: znode-frontend
     restart: unless-stopped
     environment:
-      API_URL: https://api.example.com
-    # volumes:
-      # 开发模式可挂载源码
-    #   - ./frontend:/usr/share/nginx/html
+      # 浏览器访问后端的地址；留空 = 同域反代（nginx 把 /api 转给 backend:3002）
+      API_URL: ${API_URL:-}
     ports:
       - "80:80"
     depends_on:
-      - backend
-    # networks:
-    #   - znode-net
+      backend:
+        condition: service_healthy
     networks:
       znode_net:
         ipv4_address: 172.30.2.10
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # ------------------------------
-  # MariaDB 数据库
+  # MariaDB 数据库（备用，暂未启用）
   # mariadb:
   #   image: mariadb:11
   #   container_name: znode-mariadb
   #   restart: unless-stopped
   #   environment:
-  #     MYSQL_ROOT_PASSWORD: example-root-pwd
-  #     MYSQL_DATABASE: znode
-  #     MYSQL_USER: znode
-  #     MYSQL_PASSWORD: example-user-ped
+  #     MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?请在 docker/.env 里设置 MYSQL_ROOT_PASSWORD}
+  #     MYSQL_DATABASE: ${MYSQL_DATABASE:-znode}
+  #     MYSQL_USER: ${MYSQL_USER:-znode}
+  #     MYSQL_PASSWORD: ${MYSQL_PASSWORD:?请在 docker/.env 里设置 MYSQL_PASSWORD}
   #   healthcheck:
-  #     test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -pexample-root-pwd"]
+  #     test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
   #     interval: 10s
   #     timeout: 5s
   #     retries: 5
   #     start_period: 5s
-    # ports:
-    #   - "3306:3306"   # 可选，宿主机映射
   #   volumes:
   #     - mariadb_data:/var/lib/mysql
-    # networks:
-    #   - znode-net
   #   networks:
   #     znode_net:
   #       ipv4_address: 172.30.2.30
 
+  # ------------------------------
+  # MySQL 8.0
+  # ------------------------------
   mysql:
-    # 替换为官方 mysql:8.0 或 mysql:8.0.36-arm64v8
     image: mysql:8.0.36
     container_name: znode-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: example-root-pwd
-      MYSQL_DATABASE: znode
-      MYSQL_USER: znode
-      MYSQL_PASSWORD: example-user-pwd
-    ports:
-      - "3306:3306"
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?请在 docker/.env 里设置 MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-znode}
+      MYSQL_USER: ${MYSQL_USER:-znode}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?请在 docker/.env 里设置 MYSQL_PASSWORD}
+    # 数据库不需要对外发布端口（要直连调试时再打开，并只绑本机）
+    # ports:
+    #   - "127.0.0.1:3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-    # networks:
-    #   - znode-net
     networks:
       znode_net:
         ipv4_address: 172.30.2.40
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -pexample-root-pwd"]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
       interval: 10s
+      timeout: 5s
       retries: 10
-      start_period: 5s
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 # ------------------------------
 # 网络和卷
+# ------------------------------
 networks:
   znode_net:
     name: znode_net
@@ -112,10 +125,6 @@ networks:
 volumes:
   # mariadb_data:
   #   driver: local
-  #   driver_opts:
-  #     type: none
-  #     o: bind
-  #     device: ./data/mariadb
   mysql_data:
     driver: local
     driver_opts:
