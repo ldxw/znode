@@ -10,6 +10,7 @@ import AdminAccountSettings from "./AdminAccountSettings";
 import OAuthSettings from "./settings/OAuthSettings";
 import MOFHSettings from "./settings/MOFHSettings";
 import DomainsSettings from "./settings/DomainsSettings";
+import HostingPlansSettings from "./settings/HostingPlansSettings";
 
 const AdminSettings = () => {
   const { t } = useLanguage();
@@ -22,6 +23,7 @@ const AdminSettings = () => {
       <Route path="/oauth" element={<OAuthSettings />} />
       <Route path="/mofh" element={<MOFHSettings />} />
       <Route path="/domains" element={<DomainsSettings />} />
+      <Route path="/plans" element={<HostingPlansSettings />} />
       <Route path="/general" element={<ComingSoon title={t.admin.generalSettings} />} />
       <Route path="/email" element={<Navigate to="/admin/email" replace />} />
       <Route path="/notifications" element={<ComingSoon title={t.admin.notifications} />} />

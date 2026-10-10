@@ -544,7 +544,7 @@ router.post('/create', authMiddleware, async (req: AuthenticatedRequest, res: Re
   try {
     const userId = req.user!.id;
     const userEmail = req.user!.email;
-    const { subdomain, domain, label, isCustomDomain, customDomain, turnstileToken } = req.body;
+    const { subdomain, domain, label, isCustomDomain, customDomain, turnstileToken, planId } = req.body;
     
     // Verify Turnstile if required
     const turnstileResult = await verifyTurnstileForService('createHosting', turnstileToken);
@@ -694,19 +694,62 @@ router.post('/create', authMiddleware, async (req: AuthenticatedRequest, res: Re
     // Generate random password for the hosting account
     const hostingPassword = generatePassword(12);
     
-    // 挑一个 MOFH 账号来建站（多账号支持）：
-    // 域名的 NS 已经指向某家分销商 → 必须建在那家；
-    // 否则看允许域名上指定的归属账号；都没有才按策略（least-loaded / round-robin）
+    // 选套餐（可选）：前台用户选定的建站套餐
+    let selectedPlan: Awaited<ReturnType<typeof prisma.hostingPlan.findUnique>> = null;
+    if (planId) {
+      selectedPlan = await prisma.hostingPlan.findUnique({ where: { id: planId } });
+      if (!selectedPlan || !selectedPlan.isActive) {
+        return res.status(400).json({ error: 'The selected plan is not available' });
+      }
+      // 库存校验
+      if (typeof selectedPlan.maxAccounts === 'number') {
+        const used = await prisma.hosting.count({
+          where: { planId: selectedPlan.id, status: { not: 'DELETED' } },
+        });
+        if (used >= selectedPlan.maxAccounts) {
+          return res.status(400).json({ error: 'The selected plan is sold out' });
+        }
+      }
+    }
+
+    // 挑一个 MOFH 账号来建站（多账号支持），优先级：
+    //   1) 域名的 NS 指向某家分销商 / 允许域名上指定的归属账号 —— 域名决定了必须建在哪家
+    //   2) 套餐绑定的账号
+    //   3) 分配策略（least-loaded / round-robin）
     const nsAccount = accountByNameservers(mofhConfig, domainNameservers);
+    const domainAccount = nsAccount || (preferredAccountId ? getAccount(mofhConfig, preferredAccountId) : null);
     if (nsAccount) {
       console.log(`[MOFH Create Account] 域名 NS 指向账号「${nsAccount.name}」，优先使用该账号`);
     }
-    const mofhAccount = await pickAccount(mofhConfig, nsAccount?.id || preferredAccountId);
+
+    let mofhAccount: MOFHAccount | null;
+    if (domainAccount) {
+      // 域名已经定了账号；套餐必须属于同一家，否则建出来 MOFH 会拒
+      if (selectedPlan?.mofhAccountId && selectedPlan.mofhAccountId !== domainAccount.id) {
+        return res.status(400).json({
+          error: 'The selected plan belongs to a different reseller than this domain',
+        });
+      }
+      mofhAccount = domainAccount;
+    } else if (selectedPlan?.mofhAccountId) {
+      mofhAccount = getAccount(mofhConfig, selectedPlan.mofhAccountId);
+      if (!mofhAccount) {
+        return res.status(400).json({ error: 'The reseller account for this plan is unavailable' });
+      }
+    } else {
+      mofhAccount = await pickAccount(mofhConfig, preferredAccountId);
+    }
+
     if (!mofhAccount) {
       return res.status(500).json({ error: 'No MOFH account available' });
     }
-    const plan = packageForAccount(mofhConfig, mofhAccount);
-    console.log(`[MOFH Create Account] 使用账号 ${mofhAccount.name} (${mofhAccount.id})，套餐 ${plan}`);
+
+    // 套餐名：优先用所选套餐绑定的 MOFH 套餐，否则用账号默认套餐
+    const mofhPackageName = selectedPlan?.mofhPackage || packageForAccount(mofhConfig, mofhAccount);
+    console.log(
+      `[MOFH Create Account] 账号=${mofhAccount.name}(${mofhAccount.id}) 套餐=${mofhPackageName}` +
+        (selectedPlan ? ` 来自建站套餐「${selectedPlan.name}」` : ''),
+    );
 
     // Create account via MOFH JSON API
     const mofhResp = await mofhJsonRequest('createacct.php', {
@@ -714,7 +757,7 @@ router.post('/create', authMiddleware, async (req: AuthenticatedRequest, res: Re
       password: hostingPassword,
       contactemail: userEmail,
       domain: fullDomain,
-      plan,
+      plan: mofhPackageName,
     }, mofhAccount);
     
     const mofhText = await mofhResp.text();
@@ -762,12 +805,14 @@ router.post('/create', authMiddleware, async (req: AuthenticatedRequest, res: Re
         username: accountUsername,
         password: hostingPassword, // Store password for user to view later
         domain: fullDomain,
-        package: plan,
+        package: mofhPackageName,
         status: 'PENDING', // Will be updated by callback
         label: label || null,
         isCustomDomain: isCustomDomain || false,
         // 记录实际使用的分销账号，之后暂停/恢复/同步都靠它找回对应凭据
         mofhAccountId: mofhAccount.id,
+        // 记录所选套餐，便于按套餐统计/限购
+        planId: selectedPlan?.id || null,
       },
     });
     

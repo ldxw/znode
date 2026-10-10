@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
@@ -27,6 +28,29 @@ import { useTurnstileConfig, isTurnstileRequired } from "@/hooks/useTurnstile";
 interface AllowedDomain {
   id: string;
   domain: string;
+  /** 该域名归属的 MOFH 账号（空 = 不限） */
+  accountId?: string;
+}
+
+/** 前台可选的建站套餐 */
+interface HostingPlanOption {
+  id: string;
+  name: string;
+  description: string;
+  mofhAccountId: string;
+  mofhAccountName: string;
+  mofhPackage: string;
+  specs: {
+    disk?: string;
+    bandwidth?: string;
+    domains?: number;
+    databases?: number;
+    emailAccounts?: number;
+    subdomains?: number;
+  };
+  features: string[];
+  isFeatured: boolean;
+  remaining: number | null;
 }
 
 interface HostingStats {
@@ -134,7 +158,38 @@ const CreateHosting = () => {
     },
   });
 
-  const domains: AllowedDomain[] = domainsData?.domains || [];
+  const allDomains: AllowedDomain[] = domainsData?.domains || [];
+
+  // 建站套餐（前台可选）
+  const { data: plansData } = useQuery({
+    queryKey: ["hosting-plans"],
+    queryFn: async () => {
+      const response = await fetch(`${API_URL}/api/hosting-plans`);
+      if (!response.ok) return { plans: [] as HostingPlanOption[] };
+      return response.json() as Promise<{ plans: HostingPlanOption[] }>;
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+  const plans: HostingPlanOption[] = plansData?.plans || [];
+  const [selectedPlanId, setSelectedPlanId] = useState<string>("");
+  const selectedPlan = plans.find((p) => p.id === selectedPlanId) || null;
+
+  // 选了套餐就把域名列表收窄到该分销商名下（accountId 为空的视为通用）
+  const domains: AllowedDomain[] = selectedPlan?.mofhAccountId
+    ? allDomains.filter((d) => !d.accountId || d.accountId === selectedPlan.mofhAccountId)
+    : allDomains;
+
+  useEffect(() => {
+    if (plans.length > 0 && !plans.some((p) => p.id === selectedPlanId)) {
+      setSelectedPlanId(plans[0].id);
+    }
+  }, [plans, selectedPlanId]);
+
+  useEffect(() => {
+    if (selectedDomain && !domains.some((d) => d.domain === selectedDomain)) {
+      setSelectedDomain(domains[0]?.domain || "");
+    }
+  }, [domains, selectedDomain]);
 
   // Fetch hosting stats
   const { data: statsData, isLoading: loadingStats } = useQuery({
@@ -269,11 +324,13 @@ const CreateHosting = () => {
           customDomain: customDomain,
           isCustomDomain: true,
           label,
+          planId: selectedPlanId || undefined,
           turnstileToken: turnstileToken || undefined,
         } : {
           subdomain,
           domain: selectedDomain,
           label,
+          planId: selectedPlanId || undefined,
           turnstileToken: turnstileToken || undefined,
         }),
       });
@@ -635,6 +692,72 @@ const CreateHosting = () => {
             </h2>
 
             <form onSubmit={handleCreate} className="space-y-6">
+              {/* 建站套餐选择 */}
+              {plans.length > 0 && (
+                <div className="space-y-3">
+                  <div>
+                    <Label>{t.createHosting?.choosePlan || "Choose a plan"}</Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {t.createHosting?.choosePlanHint || "Each plan is provided by a specific reseller account."}
+                    </p>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {plans.map((p) => {
+                      const active = selectedPlanId === p.id;
+                      const chips: string[] = [];
+                      if (p.specs?.disk) chips.push(`${t.createHosting?.disk || "Disk"}: ${p.specs.disk}`);
+                      if (p.specs?.bandwidth) chips.push(`${t.createHosting?.bandwidth || "Bandwidth"}: ${p.specs.bandwidth}`);
+                      if (p.specs?.domains != null) chips.push(`${t.createHosting?.domains || "Domains"}: ${p.specs.domains}`);
+                      if (p.specs?.databases != null) chips.push(`${t.createHosting?.databases || "Databases"}: ${p.specs.databases}`);
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => setSelectedPlanId(p.id)}
+                          className={`text-left rounded-xl border p-4 transition ${
+                            active ? "border-primary bg-primary/5 ring-1 ring-primary/30" : "border-border hover:border-primary/40"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-medium">{p.name}</span>
+                            {p.isFeatured && (
+                              <Badge className="text-xs">{t.createHosting?.recommended || "Recommended"}</Badge>
+                            )}
+                          </div>
+                          {p.mofhAccountName && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {t.createHosting?.providedBy || "Provided by"}: {p.mofhAccountName}
+                            </p>
+                          )}
+                          {p.description && (
+                            <p className="text-sm text-muted-foreground mt-1">{p.description}</p>
+                          )}
+                          {chips.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {chips.map((c, i) => (
+                                <span key={i} className="text-xs rounded-md bg-muted px-2 py-0.5">{c}</span>
+                              ))}
+                            </div>
+                          )}
+                          {p.features.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {p.features.slice(0, 4).map((f, i) => (
+                                <Badge key={i} variant="outline" className="text-xs font-normal">{f}</Badge>
+                              ))}
+                            </div>
+                          )}
+                          {p.remaining != null && (
+                            <p className="text-xs text-muted-foreground mt-2">
+                              {t.createHosting?.remaining || "Remaining"}: {p.remaining}
+                            </p>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 flex items-center gap-3">
                 <Globe className="w-5 h-5 text-primary" />
                 <div>
@@ -710,7 +833,7 @@ const CreateHosting = () => {
                 type="submit"
                 size="lg"
                 className="w-full"
-                disabled={createHostingMutation.isPending || (requiresTurnstile && !turnstileToken) || !!subdomainRuleError}
+                disabled={createHostingMutation.isPending || (requiresTurnstile && !turnstileToken) || !!subdomainRuleError || (plans.length > 0 && !selectedPlanId)}
               >
                 {createHostingMutation.isPending ? (
                   <>

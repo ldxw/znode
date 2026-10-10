@@ -125,6 +125,8 @@ model Hosting {
   isCustomDomain   Boolean          @default(false)
   /** 建站时使用的 MOFH 账号 id（多账号支持；老数据为空，按第一个账号处理） */
   mofhAccountId    String?
+  /** 建站时选用的套餐 id（留空 = 走账号默认套餐） */
+  planId           String?
   databases        Database[]
   user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   sslCertificates  SSLCertificate[]
@@ -132,6 +134,33 @@ model Hosting {
 
   @@index([userId], map: "hostings_userId_fkey")
   @@map("hostings")
+}
+
+/// 建站套餐：前台用户可选，一个套餐绑定到某个 MOFH 账号下的某个 MOFH 套餐
+model HostingPlan {
+  id            String   @id @default(cuid())
+  name          String
+  description   String?  @db.Text
+  /// 归属的 MOFH 账号 id（留空 = 按分配策略自动挑账号）
+  mofhAccountId String?
+  /// MOFH 后台的套餐名（如 "10GB"），必须在该账号的套餐列表里存在
+  mofhPackage   String
+  /// 展示用规格 { disk, bandwidth, domains, databases, emailAccounts, subdomains }
+  specs         Json?
+  /// 特性列表 ["免费 SSL", "cPanel", ...]
+  features      Json?
+  /// 该套餐最多能创建多少个（库存，留空 = 不限）
+  maxAccounts   Int?
+  isActive      Boolean  @default(true)
+  isFeatured    Boolean  @default(false)
+  order         Int      @default(0)
+  /// 多语言覆盖 { "zh": { name, description, features: [] } }
+  translations  Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([order])
+  @@map("hosting_plans")
 }
 
 model Database {

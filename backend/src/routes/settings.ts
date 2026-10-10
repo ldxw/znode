@@ -602,7 +602,7 @@ router.get('/domains/public', async (req: AuthenticatedRequest, res: Response) =
     // Only return enabled domains with minimal info
     const enabledDomains = allDomains
       .filter(d => d.enabled)
-      .map(d => ({ id: d.id, domain: d.domain }));
+      .map(d => ({ id: d.id, domain: d.domain, accountId: d.accountId || '' }));
     
     res.json({ domains: enabledDomains });
   } catch (error) {

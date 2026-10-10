@@ -29,6 +29,7 @@ import installRoutes from './routes/install.js';
 import landingPageRoutes from './routes/landing-page.js';
 import knowledgebaseRoutes from './routes/knowledgebase.js';
 import premiumPlansRoutes from './routes/premium-plans.js';
+import hostingPlansRoutes from './routes/hosting-plans.js';
 import cdnSearchRoutes from './routes/cdn-search.js';
 import builderRoutes from './routes/builder.js';
 import importRoutes from './routes/import.js';
@@ -161,6 +162,7 @@ async function startServer() {
   app.use('/api/landing-page', landingPageRoutes);
   app.use('/api/kb', knowledgebaseRoutes);
   app.use('/api/premium-plans', premiumPlansRoutes);
+  app.use('/api/hosting-plans', hostingPlansRoutes);
   app.use('/api/tools/cdn-search', cdnSearchRoutes);
   app.use('/api/builder', builderRoutes);
   app.use('/api/admin/import', importRoutes);
