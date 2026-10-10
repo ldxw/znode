@@ -540,7 +540,10 @@
     "plansCount": "个套餐",
     "autoAccount": "自动分配",
     "chooseAccount": "分销账号",
-    "chooseAccountHint": "选择你的主机创建在哪家分销账号下。"
+    "chooseAccountHint": "选择你的主机创建在哪家分销账号下。",
+    "autoAssign": "自动分配",
+    "autoAssignHint": "显示所有分销账号下的套餐",
+    "noPlansForAccount": "你选的这个分销账号下暂无套餐。切回「自动分配」可以看到全部套餐。"
   },
   "support": {
     "title": "支持",

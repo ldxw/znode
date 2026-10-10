@@ -540,7 +540,10 @@
     "plansCount": "gói",
     "autoAccount": "Tự động gán",
     "chooseAccount": "Tài khoản hosting",
-    "chooseAccountHint": "Chọn tài khoản hosting mà hosting của bạn sẽ được tạo dưới đó."
+    "chooseAccountHint": "Chọn tài khoản hosting mà hosting của bạn sẽ được tạo dưới đó.",
+    "autoAssign": "Tự động",
+    "autoAssignHint": "Hiển thị gói từ mọi tài khoản hosting",
+    "noPlansForAccount": "Tài khoản hosting bạn chọn chưa có gói nào. Chuyển về “Tự động” để xem tất cả."
   },
   "support": {
     "title": "Hỗ trợ",

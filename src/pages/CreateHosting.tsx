@@ -185,12 +185,14 @@ const CreateHosting = () => {
   const plans: HostingPlanOption[] = plansData?.plans || [];
   const accounts: AccountOption[] = plansData?.accounts || [];
 
-  // 用户自己选的分销账号（多个账号时才出现选择器）
+  // 用户自己选的分销账号；默认「自动分配」= 不限制。
+  // ⚠️ 不要默认选中第一个账号：套餐是绑定到具体账号的，预选会把别家的套餐整段藏掉，
+  // 用户只会看到「没有套餐」而不知道原因。
   const [selectedAccountId, setSelectedAccountId] = useState<string>("");
   useEffect(() => {
-    if (accounts.length === 0) return;
-    if (!accounts.some((a) => a.id === selectedAccountId)) {
-      setSelectedAccountId(accounts[0].id);
+    // 账号被删/改了之后，之前的选择失效就退回「自动分配」
+    if (selectedAccountId && accounts.length > 0 && !accounts.some((a) => a.id === selectedAccountId)) {
+      setSelectedAccountId("");
     }
   }, [accounts, selectedAccountId]);
 
@@ -800,6 +802,26 @@ const CreateHosting = () => {
                     </p>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAccountId("")}
+                      className={`text-left rounded-xl border p-4 transition ${
+                        selectedAccountId === ""
+                          ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                          : "border-border hover:border-primary/40"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium">
+                          {t.createHosting?.autoAssign || "Automatic"}
+                        </span>
+                        {selectedAccountId === "" && <Check className="w-4 h-4 text-primary" />}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {t.createHosting?.autoAssignHint || "Shows plans from every hosting account"}
+                      </p>
+                    </button>
+
                     {accounts.map((a) => {
                       const active = selectedAccountId === a.id;
                       return (
@@ -825,6 +847,17 @@ const CreateHosting = () => {
                     })}
                   </div>
                 </div>
+              )}
+
+              {/* 选了具体账号、但该账号下一个套餐都没有：明确告知，别让人以为功能坏了 */}
+              {plans.length > 0 && plansForAccount.length === 0 && (
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertDescription>
+                    {t.createHosting?.noPlansForAccount ||
+                      "The hosting account you picked has no plans. Switch back to Automatic to see all plans."}
+                  </AlertDescription>
+                </Alert>
               )}
 
               {/* 建站套餐选择（按提供方账号分组） */}

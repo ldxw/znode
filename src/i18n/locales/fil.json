@@ -540,7 +540,10 @@
     "plansCount": "plan",
     "autoAccount": "Awtomatikong itinalaga",
     "chooseAccount": "Hosting account",
-    "chooseAccountHint": "Piliin kung aling hosting account gagawin ang iyong hosting."
+    "chooseAccountHint": "Piliin kung aling hosting account gagawin ang iyong hosting.",
+    "autoAssign": "Awtomatiko",
+    "autoAssignHint": "Ipinapakita ang mga plan mula sa lahat ng hosting account",
+    "noPlansForAccount": "Walang plan ang hosting account na pinili mo. Bumalik sa “Awtomatiko” para makita lahat."
   },
   "support": {
     "title": "Support",

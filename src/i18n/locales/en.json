@@ -540,7 +540,10 @@
     "plansCount": "plans",
     "autoAccount": "Auto-assigned",
     "chooseAccount": "Hosting account",
-    "chooseAccountHint": "Pick which of our hosting accounts your hosting is created under."
+    "chooseAccountHint": "Pick which of our hosting accounts your hosting is created under.",
+    "autoAssign": "Automatic",
+    "autoAssignHint": "Shows plans from every hosting account",
+    "noPlansForAccount": "The hosting account you picked has no plans. Switch back to Automatic to see all plans."
   },
   "support": {
     "title": "Support",
