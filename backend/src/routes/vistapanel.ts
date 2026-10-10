@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import prisma from '../lib/prisma.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 import { VistapanelApi } from '../lib/vistapanel.js';
+import { cpanelUrlForVpUsername } from '../lib/mofh.js';
 
 const router = Router();
 
@@ -34,20 +35,10 @@ function isHostingOperational(hosting: { status: string; cpanelApproved: boolean
   return { operational: true };
 }
 
-// Get MOFH config
-async function getMOFHConfig() {
-  const setting = await prisma.setting.findUnique({
-    where: { key: 'mofh_config' },
-  });
-  
-  if (!setting) return null;
-  return JSON.parse(setting.value);
-}
-
 // Helper to get logged in VistapanelApi instance
+// 用户面板地址按该主机所属的分销账号解析（多账号下不同分销商的面板域名不同）
 async function getVistapanelInstance(vpUsername: string, password: string): Promise<VistapanelApi> {
-  const mofhConfig = await getMOFHConfig();
-  const cpanelUrl = mofhConfig?.cpanelUrl || 'https://cpanel.byethost.com';
+  const cpanelUrl = (await cpanelUrlForVpUsername(vpUsername)) || 'https://cpanel.byethost.com';
   
   const vp = new VistapanelApi();
   vp.setCpanelUrl(cpanelUrl);

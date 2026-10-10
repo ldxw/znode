@@ -12,6 +12,7 @@ import {
 } from '../lib/jwt.js';
 import { adminMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 import { getSSLConfig } from '../lib/ssl.js';
+import { loadMOFHConfig, extractCpanelError, MOFH_API_BASE, getAccount } from '../lib/mofh.js';
 
 const router = Router();
 
@@ -488,7 +489,13 @@ router.get('/stats', adminMiddleware, async (req: AuthenticatedRequest, res: Res
 
 // Get system health status (admin only)
 router.get('/health', adminMiddleware, async (req: AuthenticatedRequest, res: Response) => {
-  const checks: Record<string, { status: 'online' | 'offline' | 'unconfigured'; latency?: number; message?: string }> = {};
+  const checks: Record<string, {
+    status: 'online' | 'offline' | 'unconfigured';
+    latency?: number;
+    message?: string;
+    /** MOFH 多账号时，逐个账号的结果 */
+    accounts?: Array<{ id: string; name: string; status: string; latency?: number; message?: string }>;
+  }> = {};
 
   // 1. API check (always online if we reach here)
   checks.api = { status: 'online', message: 'Backend running' };
@@ -502,57 +509,68 @@ router.get('/health', adminMiddleware, async (req: AuthenticatedRequest, res: Re
     checks.database = { status: 'offline', latency: Date.now() - dbStart, message: err.message || 'Database connection failed' };
   }
 
-  // 3. MOFH API check
+  // 3. MOFH API check（多账号：逐个账号检查后汇总）
   try {
-    const mofhSetting = await prisma.setting.findUnique({ where: { key: 'mofh_config' } });
-    if (!mofhSetting) {
+    const mofhConfig = await loadMOFHConfig();
+    if (mofhConfig.accounts.length === 0) {
       checks.mofh = { status: 'unconfigured', message: 'MOFH not configured' };
+    } else if (!mofhConfig.enabled) {
+      checks.mofh = { status: 'unconfigured', message: 'MOFH disabled' };
+    } else if (mofhConfig.enabledAccounts.length === 0) {
+      checks.mofh = { status: 'unconfigured', message: 'MOFH credentials not set' };
     } else {
-      const mofhConfig = JSON.parse(mofhSetting.value);
-      if (!mofhConfig.enabled) {
-        checks.mofh = { status: 'unconfigured', message: 'MOFH disabled' };
-      } else if (!mofhConfig.apiUsername || !mofhConfig.apiPassword) {
-        checks.mofh = { status: 'unconfigured', message: 'MOFH credentials not set' };
-      } else {
-        const mofhStart = Date.now();
-        const authString = Buffer.from(`${mofhConfig.apiUsername}:${mofhConfig.apiPassword}`).toString('base64');
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000);
-        try {
-          // 两处都要注意（2026-10 实测）：
-          //  1) 端点必须是 listpkgs.php。MOFH 上没有 getdomainlist 这个路径 —— 请求会被
-          //     改写成 getdomainlist.php 再 404。原实现写成 getdomainlist，导致仪表盘
-          //     永远报 "MOFH returned 404"，而设置页的「测试」（用 listpkgs.php）却是好的。
-          //  2) MOFH 认证失败也返回 HTTP 200，必须解析响应体里的 cpanelresult.error，
-          //     只看 resp.ok 会把凭据错误/IP 未白名单假报成 online。
-          const resp = await fetch('https://panel.myownfreehost.net/json-api/listpkgs.php', {
-            headers: {
-              'Authorization': `Basic ${authString}`,
-            },
-            signal: controller.signal,
-          });
-          clearTimeout(timeout);
-          if (!resp.ok) {
-            checks.mofh = { status: 'offline', latency: Date.now() - mofhStart, message: `MOFH returned ${resp.status}` };
-          } else {
-            const mofhData = (await resp.json().catch(() => ({}))) as {
-              package?: unknown[];
+      const mofhStart = Date.now();
+      // 两处都要注意（2026-10 实测）：
+      //  1) 端点必须是 listpkgs.php。MOFH 上没有 getdomainlist 这个路径 —— 请求会被
+      //     改写成 getdomainlist.php 再 404。原实现写成 getdomainlist，导致仪表盘
+      //     永远报 "MOFH returned 404"，而设置页的「测试」（用 listpkgs.php）却是好的。
+      //  2) MOFH 认证失败也返回 HTTP 200，必须解析响应体里的 cpanelresult.error，
+      //     只看 resp.ok 会把凭据错误/IP 未白名单假报成 online。
+      const results = await Promise.all(
+        mofhConfig.enabledAccounts.map(async (account) => {
+          const started = Date.now();
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 10000);
+          const base = { id: account.id, name: account.name };
+          try {
+            const resp = await fetch(`${MOFH_API_BASE}/json-api/listpkgs.php`, {
+              headers: {
+                'Authorization': `Basic ${Buffer.from(`${account.apiUsername}:${account.apiPassword}`).toString('base64')}`,
+              },
+              signal: controller.signal,
+            });
+            clearTimeout(timeout);
+            if (!resp.ok) {
+              return { ...base, status: 'offline', latency: Date.now() - started, message: `MOFH returned ${resp.status}` };
+            }
+            const data = (await resp.json().catch(() => ({}))) as {
+              package?: Array<{ name: string }>;
               cpanelresult?: { error?: string; data?: { reason?: string } };
             };
-            const mofhApiError = mofhData.cpanelresult?.error;
-            checks.mofh = mofhApiError
-              ? {
-                  status: 'offline',
-                  latency: Date.now() - mofhStart,
-                  message: `MOFH: ${mofhData.cpanelresult?.data?.reason || mofhApiError}`,
-                }
-              : { status: 'online', latency: Date.now() - mofhStart, message: 'MOFH connection OK' };
+            const apiErr = extractCpanelError(data);
+            return apiErr
+              ? { ...base, status: 'offline', latency: Date.now() - started, message: `MOFH: ${apiErr}` }
+              : { ...base, status: 'online', latency: Date.now() - started, message: 'MOFH connection OK' };
+          } catch (fetchErr: any) {
+            clearTimeout(timeout);
+            return {
+              ...base,
+              status: 'offline',
+              latency: Date.now() - started,
+              message: fetchErr.name === 'AbortError' ? 'MOFH timeout (10s)' : (fetchErr.message || 'MOFH connection failed'),
+            };
           }
-        } catch (fetchErr: any) {
-          clearTimeout(timeout);
-          checks.mofh = { status: 'offline', latency: Date.now() - mofhStart, message: fetchErr.name === 'AbortError' ? 'MOFH timeout (10s)' : (fetchErr.message || 'MOFH connection failed') };
-        }
-      }
+        }),
+      );
+      const bad = results.filter((r) => r.status !== 'online');
+      checks.mofh = {
+        status: bad.length === 0 ? 'online' : 'offline',
+        latency: Date.now() - mofhStart,
+        message: bad.length === 0
+          ? (results.length > 1 ? `MOFH connection OK（${results.length} 个账号）` : 'MOFH connection OK')
+          : `${bad.length}/${results.length} 个 MOFH 账号异常：${bad.map((b) => `${b.name} → ${b.message}`).join('；')}`,
+        accounts: results,
+      };
     }
   } catch (err: any) {
     checks.mofh = { status: 'offline', message: err.message || 'Failed to check MOFH' };
@@ -754,17 +772,15 @@ router.post('/hostings/:vpUsername/suspend', adminMiddleware, async (req: Authen
       select: { email: true, name: true },
     });
 
-    // Call MOFH API to suspend
-    const setting = await prisma.setting.findUnique({
-      where: { key: 'mofh_config' },
-    });
-    
-    if (!setting) {
+    // Call MOFH API to suspend（用该主机所属的分销账号 —— 多账号支持）
+    const mofhConfig = await loadMOFHConfig();
+    const mofhAccount = getAccount(mofhConfig, hosting.mofhAccountId) || mofhConfig.enabledAccounts[0] || null;
+
+    if (!mofhAccount) {
       return res.status(500).json({ error: 'MOFH not configured' });
     }
-    
-    const config = JSON.parse(setting.value);
-    const authString = Buffer.from(`${config.apiUsername}:${config.apiPassword}`).toString('base64');
+
+    const authString = Buffer.from(`${mofhAccount.apiUsername}:${mofhAccount.apiPassword}`).toString('base64');
     
     const suspendReason = reason || 'Suspended by admin';
     const adminName = admin?.name || admin?.email?.split('@')[0] || 'Admin';
@@ -775,7 +791,7 @@ router.post('/hostings/:vpUsername/suspend', adminMiddleware, async (req: Authen
       reason: fullReason,
     });
     
-    const response = await fetch('https://panel.myownfreehost.net/json-api/suspendacct.php', {
+    const response = await fetch(`${MOFH_API_BASE}/json-api/suspendacct.php`, {
       method: 'POST',
       headers: {
         'Authorization': `Basic ${authString}`,
@@ -845,23 +861,21 @@ router.post('/hostings/:vpUsername/unsuspend', adminMiddleware, async (req: Auth
       return res.status(400).json({ error: 'Can only unsuspend suspended accounts' });
     }
 
-    // Call MOFH API to unsuspend
-    const setting = await prisma.setting.findUnique({
-      where: { key: 'mofh_config' },
-    });
-    
-    if (!setting) {
+    // Call MOFH API to unsuspend（用该主机所属的分销账号 —— 多账号支持）
+    const mofhConfig = await loadMOFHConfig();
+    const mofhAccount = getAccount(mofhConfig, hosting.mofhAccountId) || mofhConfig.enabledAccounts[0] || null;
+
+    if (!mofhAccount) {
       return res.status(500).json({ error: 'MOFH not configured' });
     }
-    
-    const config = JSON.parse(setting.value);
-    const authString = Buffer.from(`${config.apiUsername}:${config.apiPassword}`).toString('base64');
+
+    const authString = Buffer.from(`${mofhAccount.apiUsername}:${mofhAccount.apiPassword}`).toString('base64');
     
     const params = new URLSearchParams({
       user: hosting.username, // Use 8-char username for MOFH
     });
     
-    const response = await fetch('https://panel.myownfreehost.net/json-api/unsuspendacct.php', {
+    const response = await fetch(`${MOFH_API_BASE}/json-api/unsuspendacct.php`, {
       method: 'POST',
       headers: {
         'Authorization': `Basic ${authString}`,

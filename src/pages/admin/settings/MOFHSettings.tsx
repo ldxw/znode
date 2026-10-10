@@ -24,41 +24,65 @@ import {
   Copy,
   Globe,
   Network,
+  Plus,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { useLanguage } from "@/contexts/LanguageContext";
 
-interface MOFHConfig {
-  enabled: boolean;
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002';
+
+/** 一个 MOFH 分销账号（= 一套 apiUsername/apiPassword） */
+interface MOFHAccountDraft {
+  id?: string;
+  name: string;
   apiUsername: string;
   apiPassword: string;
-  defaultPackage: string;
-  callbackUrl: string;
-  cpanelUrl: string;
-  serverIp: string;
-  customNameservers?: string;
+  enabled: boolean;
+  defaultPackage?: string;
+  cpanelUrl?: string;
+  note?: string;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002';
+interface MOFHConfig {
+  enabled: boolean;
+  strategy: 'least-loaded' | 'round-robin';
+  defaultPackage: string;
+  cpanelUrl: string;
+  customNameservers?: string;
+  accounts: MOFHAccountDraft[];
+}
+
+const emptyAccount = (): MOFHAccountDraft => ({
+  name: "",
+  apiUsername: "",
+  apiPassword: "",
+  enabled: true,
+  defaultPackage: "",
+  cpanelUrl: "",
+  note: "",
+});
 
 const MOFHSettings = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { t } = useLanguage();
   const mt = t.admin?.mofh || {} as any;
-  const [showPassword, setShowPassword] = useState(false);
   const [serverIp, setServerIp] = useState<string>("");
   const [loadingIp, setLoadingIp] = useState(true);
+  const [visiblePasswords, setVisiblePasswords] = useState<Record<number, boolean>>({});
+  const [expanded, setExpanded] = useState<Record<number, boolean>>({});
+  const [testingIndex, setTestingIndex] = useState<number | null>(null);
   const [config, setConfig] = useState<MOFHConfig>({
     enabled: false,
-    apiUsername: "",
-    apiPassword: "",
+    strategy: "least-loaded",
     defaultPackage: "",
-    callbackUrl: "",
     cpanelUrl: "",
-    serverIp: "",
     customNameservers: "",
+    accounts: [],
   });
 
   // Fetch current MOFH settings
@@ -68,7 +92,7 @@ const MOFHSettings = () => {
       const token = localStorage.getItem("accessToken");
       const response = await fetch(`${API_URL}/api/settings/mofh`, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: "Bearer ${token}",
         },
       });
       if (!response.ok) throw new Error("Failed to fetch MOFH settings");
@@ -84,7 +108,7 @@ const MOFHSettings = () => {
         const token = localStorage.getItem("accessToken");
         const response = await fetch(`${API_URL}/api/settings/server-ip`, {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: "Bearer ${token}",
           },
         });
         if (response.ok) {
@@ -103,11 +127,18 @@ const MOFHSettings = () => {
     fetchServerIp();
   }, []);
 
-
   // Update settings from API
   useEffect(() => {
     if (settingsData?.settings) {
-      setConfig(settingsData.settings);
+      const s = settingsData.settings;
+      setConfig({
+        enabled: s.enabled ?? false,
+        strategy: s.strategy === 'round-robin' ? 'round-robin' : 'least-loaded',
+        defaultPackage: s.defaultPackage || "",
+        cpanelUrl: s.cpanelUrl || "",
+        customNameservers: s.customNameservers || "",
+        accounts: Array.isArray(s.accounts) ? s.accounts : [],
+      });
     }
   }, [settingsData]);
 
@@ -119,7 +150,7 @@ const MOFHSettings = () => {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: "Bearer ${token}",
         },
         body: JSON.stringify(data),
       });
@@ -131,7 +162,6 @@ const MOFHSettings = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["mofh-settings"] });
-      queryClient.invalidateQueries({ queryKey: ["mofh-packages"] });
       toast({
         title: mt.savedSuccess || "Saved successfully",
         description: mt.savedDesc || "MOFH API settings have been updated",
@@ -146,19 +176,21 @@ const MOFHSettings = () => {
     },
   });
 
-  // Test connection mutation
+  // Test one account
   const testMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (payload: { accountId?: string; apiUsername?: string; apiPassword?: string; index: number }) => {
       const token = localStorage.getItem("accessToken");
+      setTestingIndex(payload.index);
       const response = await fetch(`${API_URL}/api/settings/mofh/test`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: "Bearer ${token}",
         },
         body: JSON.stringify({
-          apiUsername: config.apiUsername,
-          apiPassword: config.apiPassword,
+          accountId: payload.accountId,
+          apiUsername: payload.apiUsername,
+          apiPassword: payload.apiPassword,
         }),
       });
       const data = await response.json();
@@ -192,14 +224,29 @@ const MOFHSettings = () => {
         variant: "destructive",
       });
     },
+    onSettled: () => setTestingIndex(null),
   });
 
   const handleSave = () => {
     saveMutation.mutate(config);
   };
 
-  const handleTest = () => {
-    testMutation.mutate();
+  const updateAccount = (index: number, patch: Partial<MOFHAccountDraft>) => {
+    setConfig((prev) => ({
+      ...prev,
+      accounts: prev.accounts.map((a, i) => (i === index ? { ...a, ...patch } : a)),
+    }));
+  };
+
+  const addAccount = () => {
+    setConfig((prev) => ({ ...prev, accounts: [...prev.accounts, emptyAccount()] }));
+  };
+
+  const removeAccount = (index: number) => {
+    setConfig((prev) => ({
+      ...prev,
+      accounts: prev.accounts.filter((_, i) => i !== index),
+    }));
   };
 
   if (loadingSettings) {
@@ -243,78 +290,245 @@ const MOFHSettings = () => {
         </AlertDescription>
       </Alert>
 
-      {/* Main Settings - 2 Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left Column - API Credentials */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                  <Server className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <CardTitle>{mt.apiCredentials || 'API Credentials'}</CardTitle>
-                  <CardDescription>
-                    {mt.apiCredentialsDesc || 'MOFH API login information'}
-                  </CardDescription>
-                </div>
+      {/* MOFH Accounts */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                <Server className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
-              <div className="flex items-center gap-2">
-                <Label htmlFor="mofh-enabled">{mt.enabled || 'Enabled'}</Label>
-                <Switch
-                  id="mofh-enabled"
-                  checked={config.enabled}
-                  onCheckedChange={(checked) =>
-                    setConfig({ ...config, enabled: checked })
-                  }
-                />
+              <div>
+                <CardTitle>{mt.accounts || 'MOFH Accounts'}</CardTitle>
+                <CardDescription>
+                  {mt.accountsDesc || 'Add multiple reseller accounts — new signups are spread across the enabled ones'}
+                </CardDescription>
               </div>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* API Username */}
-            <div className="space-y-2">
-              <Label htmlFor="api-username">{mt.apiUsername || 'API Username'}</Label>
-              <Input
-                id="api-username"
-                placeholder={mt.apiUsernamePlaceholder || 'Enter API Username from MOFH Panel'}
-                value={config.apiUsername}
-                onChange={(e) =>
-                  setConfig({ ...config, apiUsername: e.target.value })
+            <div className="flex items-center gap-2">
+              <Label htmlFor="mofh-enabled">{mt.enabled || 'Enabled'}</Label>
+              <Switch
+                id="mofh-enabled"
+                checked={config.enabled}
+                onCheckedChange={(checked) =>
+                  setConfig({ ...config, enabled: checked })
                 }
               />
             </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Assignment strategy */}
+          <div className="space-y-2">
+            <Label>{mt.strategy || 'Assignment Strategy'}</Label>
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                type="button"
+                size="sm"
+                variant={config.strategy === 'least-loaded' ? 'default' : 'outline'}
+                onClick={() => setConfig({ ...config, strategy: 'least-loaded' })}
+              >
+                {mt.strategyLeastLoaded || 'Least loaded'}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={config.strategy === 'round-robin' ? 'default' : 'outline'}
+                onClick={() => setConfig({ ...config, strategy: 'round-robin' })}
+              >
+                {mt.strategyRoundRobin || 'Round robin'}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {mt.strategyHint || 'Least loaded sends each new account to the reseller that currently has the fewest hostings'}
+            </p>
+          </div>
 
-            {/* API Password */}
-            <div className="space-y-2">
-              <Label htmlFor="api-password">{mt.apiPassword || 'API Password'}</Label>
-              <div className="relative">
-                <Input
-                  id="api-password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder={mt.apiPasswordPlaceholder || 'Enter API Password from MOFH Panel'}
-                  value={config.apiPassword}
-                  onChange={(e) =>
-                    setConfig({ ...config, apiPassword: e.target.value })
-                  }
-                  className="pr-10"
-                />
+          {/* Account list */}
+          <div className="space-y-3 pt-2 border-t">
+            {config.accounts.length === 0 && (
+              <div className="text-sm text-muted-foreground py-4 text-center">
+                {mt.noAccounts || 'No accounts yet'}
+                <div className="text-xs mt-1">
+                  {mt.noAccountsHint || 'Add at least one MOFH reseller account to start creating hostings'}
+                </div>
+              </div>
+            )}
+
+            {config.accounts.map((account, index) => (
+              <div
+                key={index}
+                className="rounded-lg border p-4 space-y-3 bg-muted/30"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 font-medium text-sm">
+                    <Server className="w-4 h-4 text-muted-foreground" />
+                    {account.name || `${mt.account || 'Account'} ${index + 1}`}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor={`acc-enabled-${index}`} className="text-xs">
+                      {mt.enabled || 'Enabled'}
+                    </Label>
+                    <Switch
+                      id={`acc-enabled-${index}`}
+                      checked={account.enabled}
+                      onCheckedChange={(checked) => updateAccount(index, { enabled: checked })}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeAccount(index)}
+                      title={mt.remove || 'Remove'}
+                    >
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor={`acc-name-${index}`}>{mt.accountName || 'Name'}</Label>
+                    <Input
+                      id={`acc-name-${index}`}
+                      placeholder={mt.accountNamePlaceholder || 'e.g. Main reseller'}
+                      value={account.name}
+                      onChange={(e) => updateAccount(index, { name: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`acc-user-${index}`}>{mt.apiUsername || 'API Username'}</Label>
+                    <Input
+                      id={`acc-user-${index}`}
+                      placeholder={mt.apiUsernamePlaceholder || 'Enter API Username from MOFH Panel'}
+                      value={account.apiUsername}
+                      onChange={(e) => updateAccount(index, { apiUsername: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor={`acc-pass-${index}`}>{mt.apiPassword || 'API Password'}</Label>
+                  <div className="relative">
+                    <Input
+                      id={`acc-pass-${index}`}
+                      type={visiblePasswords[index] ? "text" : "password"}
+                      placeholder={mt.apiPasswordPlaceholder || 'Enter API Password from MOFH Panel'}
+                      value={account.apiPassword}
+                      onChange={(e) => updateAccount(index, { apiPassword: e.target.value })}
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setVisiblePasswords((prev) => ({ ...prev, [index]: !prev[index] }))
+                      }
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {visiblePasswords[index] ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Per-account overrides */}
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setExpanded((prev) => ({ ...prev, [index]: !prev[index] }))}
+                  className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
                 >
-                  {showPassword ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
+                  {expanded[index] ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                  {mt.advancedOptions || 'Per-account overrides (package, cPanel URL)'}
                 </button>
-              </div>
-            </div>
 
-            {/* Default Package */}
+                {expanded[index] && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pl-1">
+                    <div className="space-y-2">
+                      <Label htmlFor={`acc-pkg-${index}`}>{mt.overridePackage || 'Package override'}</Label>
+                      <Input
+                        id={`acc-pkg-${index}`}
+                        placeholder={config.defaultPackage || 'Default'}
+                        value={account.defaultPackage || ""}
+                        onChange={(e) => updateAccount(index, { defaultPackage: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        {mt.overridePackageHint || 'Leave empty to use the global default package'}
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor={`acc-cpanel-${index}`}>{mt.overrideCpanel || 'cPanel URL override'}</Label>
+                      <Input
+                        id={`acc-cpanel-${index}`}
+                        placeholder={config.cpanelUrl || 'cpanel.yourdomain.com'}
+                        value={account.cpanelUrl || ""}
+                        onChange={(e) => updateAccount(index, { cpanelUrl: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        {mt.overrideCpanelHint || 'Different resellers have different panel domains'}
+                      </p>
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor={`acc-note-${index}`}>{mt.note || 'Note'}</Label>
+                      <Input
+                        id={`acc-note-${index}`}
+                        placeholder={mt.notePlaceholder || 'Optional remark for yourself'}
+                        value={account.note || ""}
+                        onChange={(e) => updateAccount(index, { note: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={!account.apiUsername || testingIndex === index}
+                    onClick={() =>
+                      testMutation.mutate({
+                        accountId: account.id,
+                        apiUsername: account.apiUsername,
+                        apiPassword: account.apiPassword,
+                        index,
+                      })
+                    }
+                  >
+                    {testingIndex === index ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <TestTube className="w-4 h-4 mr-2" />
+                    )}
+                    {mt.testAccount || 'Test'}
+                  </Button>
+                </div>
+              </div>
+            ))}
+
+            <Button type="button" variant="outline" size="sm" onClick={addAccount}>
+              <Plus className="w-4 h-4 mr-2" />
+              {mt.addAccount || 'Add Account'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Global defaults + server info */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Globe className="w-5 h-5" />
+              {mt.defaults || 'Global Defaults'}
+            </CardTitle>
+            <CardDescription>
+              {mt.defaultsDesc || 'Used for any account that does not override them'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="default-package">{mt.defaultPackage || 'Default Package'}</Label>
               <Input
@@ -330,7 +544,6 @@ const MOFHSettings = () => {
               </p>
             </div>
 
-            {/* cPanel URL */}
             <div className="space-y-2">
               <Label htmlFor="cpanel-url" className="flex items-center gap-2">
                 <Globe className="w-4 h-4" />
@@ -349,7 +562,6 @@ const MOFHSettings = () => {
               </p>
             </div>
 
-            {/* Custom Nameservers */}
             <div className="space-y-2">
               <Label htmlFor="custom-nameservers" className="flex items-center gap-2">
                 <Network className="w-4 h-4" />
@@ -368,21 +580,7 @@ const MOFHSettings = () => {
               </p>
             </div>
 
-            {/* Action Buttons */}
             <div className="flex items-center gap-3 pt-4 border-t">
-              <Button
-                onClick={handleTest}
-                variant="outline"
-                size="sm"
-                disabled={!config.apiUsername || !config.apiPassword || testMutation.isPending}
-              >
-                {testMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <TestTube className="w-4 h-4 mr-2" />
-                )}
-                Test
-              </Button>
               <Button
                 onClick={handleSave}
                 size="sm"
@@ -400,80 +598,77 @@ const MOFHSettings = () => {
           </CardContent>
         </Card>
 
-        {/* Right Column - Server Info & Packages */}
-        <div className="space-y-6">
-          {/* Server Info Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Network className="w-5 h-5" />
-                {mt.serverInfo || 'Server Information'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Callback URL */}
-              <div className="space-y-2">
-                <Label htmlFor="callback-url">{mt.callbackUrl || 'Callback URL'}</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="callback-url"
-                    value={`${window.location.origin}/api/mofh/callback`}
-                    readOnly
-                    className="bg-muted text-sm"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}/api/mofh/callback`);
-                      toast({
-                        title: mt.copied || "Copied",
-                        description: mt.callbackCopied || "Callback URL has been copied",
-                      });
-                    }}
-                  >
-                    <Copy className="w-4 h-4" />
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {mt.callbackUrlHint || 'Paste into MOFH Panel → API Settings'}
-                </p>
+        {/* Server Info Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Network className="w-5 h-5" />
+              {mt.serverInfo || 'Server Information'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Callback URL */}
+            <div className="space-y-2">
+              <Label htmlFor="callback-url">{mt.callbackUrl || 'Callback URL'}</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="callback-url"
+                  value={`${window.location.origin}/api/mofh/callback`}
+                  readOnly
+                  className="bg-muted text-sm"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/api/mofh/callback`);
+                    toast({
+                      title: mt.copied || "Copied",
+                      description: mt.callbackCopied || "Callback URL has been copied",
+                    });
+                  }}
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
               </div>
+              <p className="text-xs text-muted-foreground">
+                {mt.callbackUrlHint || 'Paste into MOFH Panel → API Settings'}
+              </p>
+            </div>
 
-              {/* Server Public IP */}
-              <div className="space-y-2">
-                <Label htmlFor="server-ip">{mt.serverIp || 'Server IP'}</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="server-ip"
-                    value={loadingIp ? "Loading..." : serverIp}
-                    readOnly
-                    className="bg-muted font-mono text-sm"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    disabled={loadingIp || !serverIp}
-                    onClick={() => {
-                      navigator.clipboard.writeText(serverIp);
-                      toast({
-                        title: mt.copied || "Copied",
-                        description: mt.ipCopied || "Server IP has been copied",
-                      });
-                    }}
-                  >
-                    <Copy className="w-4 h-4" />
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {mt.serverIpHint || 'Add this IP to MOFH whitelist'}
-                </p>
+            {/* Server Public IP */}
+            <div className="space-y-2">
+              <Label htmlFor="server-ip">{mt.serverIp || 'Server IP'}</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="server-ip"
+                  value={loadingIp ? "Loading..." : serverIp}
+                  readOnly
+                  className="bg-muted font-mono text-sm"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  disabled={loadingIp || !serverIp}
+                  onClick={() => {
+                    navigator.clipboard.writeText(serverIp);
+                    toast({
+                      title: mt.copied || "Copied",
+                      description: mt.ipCopied || "Server IP has been copied",
+                    });
+                  }}
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+              <p className="text-xs text-muted-foreground">
+                {mt.serverIpHint || 'Add this IP to MOFH whitelist'}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
     </AdminLayout>

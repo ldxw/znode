@@ -471,10 +471,22 @@
     "adminWelcome": "Ready to help users",
     "adminSelectTicket": "Select a ticket to start responding",
     "faqItems": [
-      {"q": "How do I access cPanel?", "a": "You can access cPanel through the link in your hosting details page."},
-      {"q": "Why was my website suspended?", "a": "It may be due to ToS violation or resource overuse. Contact support for details."},
-      {"q": "How do I upgrade to Premium?", "a": "Visit the Pricing page and select the Premium plan to upgrade."},
-      {"q": "What is the ticket response time?", "a": "We typically respond within 24 business hours."}
+      {
+        "q": "How do I access cPanel?",
+        "a": "You can access cPanel through the link in your hosting details page."
+      },
+      {
+        "q": "Why was my website suspended?",
+        "a": "It may be due to ToS violation or resource overuse. Contact support for details."
+      },
+      {
+        "q": "How do I upgrade to Premium?",
+        "a": "Visit the Pricing page and select the Premium plan to upgrade."
+      },
+      {
+        "q": "What is the ticket response time?",
+        "a": "We typically respond within 24 business hours."
+      }
     ]
   },
   "auth": {
@@ -987,7 +999,30 @@
       "serverIp": "Server IP",
       "serverIpHint": "Add this IP to MOFH whitelist",
       "ipCopied": "Server IP has been copied",
-      "cannotGetIp": "Cannot get IP"
+      "cannotGetIp": "Cannot get IP",
+      "accounts": "MOFH Accounts",
+      "accountsDesc": "Add multiple reseller accounts — new signups are spread across the enabled ones",
+      "addAccount": "Add Account",
+      "account": "Account",
+      "accountName": "Name",
+      "accountNamePlaceholder": "e.g. Main reseller",
+      "remove": "Remove",
+      "strategy": "Assignment Strategy",
+      "strategyLeastLoaded": "Least loaded",
+      "strategyRoundRobin": "Round robin",
+      "strategyHint": "Least loaded sends each new account to the reseller that currently has the fewest hostings",
+      "advancedOptions": "Per-account overrides (package, cPanel URL)",
+      "overridePackage": "Package override",
+      "overridePackageHint": "Leave empty to use the global default package",
+      "overrideCpanel": "cPanel URL override",
+      "overrideCpanelHint": "Different resellers have different panel domains",
+      "note": "Note",
+      "notePlaceholder": "Optional remark for yourself",
+      "noAccounts": "No accounts yet",
+      "noAccountsHint": "Add at least one MOFH reseller account to start creating hostings",
+      "testAccount": "Test",
+      "defaults": "Global Defaults",
+      "defaultsDesc": "Used for any account that does not override them"
     },
     "domains": {
       "title": "Domain Management",

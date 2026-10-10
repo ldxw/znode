@@ -2,6 +2,14 @@ import { Router, Response } from 'express';
 import { lookup } from 'dns/promises';
 import prisma from '../lib/prisma.js';
 import { adminMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import {
+  loadMOFHConfig,
+  deriveAccountId,
+  testAccount,
+  fetchPackages,
+  type MOFHAccount,
+  type MOFHStrategy,
+} from '../lib/mofh.js';
 
 const router = Router();
 
@@ -343,46 +351,36 @@ function updateEnvVariables(settings: OAuthSettings) {
 // MOFH API Settings
 // ========================
 
-interface MOFHConfig {
-  enabled: boolean;
-  apiUsername: string;
-  apiPassword: string;
-  defaultPackage: string;
-  cpanelUrl: string;
+type MOFHSettingsPayload = {
+  enabled?: boolean;
+  strategy?: MOFHStrategy;
+  defaultPackage?: string;
+  cpanelUrl?: string;
   customNameservers?: string;
-}
-
-const defaultMOFHSettings: MOFHConfig = {
-  enabled: false,
-  apiUsername: '',
-  apiPassword: '',
-  defaultPackage: '',
-  cpanelUrl: '',
-  customNameservers: '',
+  accounts?: Array<Partial<MOFHAccount> & { apiPassword?: string }>;
+  /** 兼容旧版单账号表单 */
+  apiUsername?: string;
+  apiPassword?: string;
 };
 
+const maskPassword = (pwd: string) => (pwd ? '••••••••' + pwd.slice(-4) : '');
+
 // Get MOFH settings (admin only)
-router.get('/mofh', adminMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/mofh', adminMiddleware, async (_req: AuthenticatedRequest, res: Response) => {
   try {
-    const setting = await prisma.setting.findUnique({
-      where: { key: 'mofh_config' },
+    const cfg = await loadMOFHConfig();
+
+    res.json({
+      settings: {
+        enabled: cfg.enabled,
+        strategy: cfg.strategy,
+        defaultPackage: cfg.defaultPackage,
+        cpanelUrl: cfg.cpanelUrl,
+        customNameservers: cfg.customNameservers || '',
+        // 密码只回显后 4 位，多账号逐个掩码
+        accounts: cfg.accounts.map((a) => ({ ...a, apiPassword: maskPassword(a.apiPassword) })),
+      },
     });
-
-    if (!setting) {
-      return res.json({ settings: defaultMOFHSettings, packages: [] });
-    }
-
-    const settings = JSON.parse(setting.value) as MOFHConfig;
-    
-    // Mask password for security (only show last 4 chars)
-    const maskedSettings: MOFHConfig = {
-      ...settings,
-      apiPassword: settings.apiPassword 
-        ? '••••••••' + settings.apiPassword.slice(-4) 
-        : '',
-    };
-
-    res.json({ settings: maskedSettings });
   } catch (error) {
     console.error('Get MOFH settings error:', error);
     res.status(500).json({ error: 'Failed to get MOFH settings' });
@@ -392,41 +390,63 @@ router.get('/mofh', adminMiddleware, async (req: AuthenticatedRequest, res: Resp
 // Update MOFH settings (admin only)
 router.put('/mofh', adminMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const config = req.body as MOFHConfig;
+    const body = req.body as MOFHSettingsPayload;
+    const current = await loadMOFHConfig();
 
-    // Get current settings to preserve password if masked
-    const currentSetting = await prisma.setting.findUnique({
-      where: { key: 'mofh_config' },
-    });
+    // 新版传 accounts[]；旧版表单只传顶层 apiUsername → 当成单个账号处理
+    const incoming = Array.isArray(body.accounts) && body.accounts.length > 0
+      ? body.accounts
+      : (body.apiUsername ? [{ apiUsername: body.apiUsername, apiPassword: body.apiPassword }] : []);
 
-    let currentSettings: MOFHConfig = currentSetting 
-      ? JSON.parse(currentSetting.value) 
-      : defaultMOFHSettings;
+    const accounts: MOFHAccount[] = [];
+    for (const a of incoming) {
+      const apiUsername = (a.apiUsername || '').trim();
+      if (!apiUsername) continue;
 
-    // If password starts with •, keep the old one
-    if (config.apiPassword && config.apiPassword.startsWith('••••••••')) {
-      config.apiPassword = currentSettings.apiPassword;
+      const existing =
+        current.accounts.find((x) => x.id === a.id) ||
+        current.accounts.find((x) => x.apiUsername === apiUsername);
+
+      // 密码以 •• 开头 = 前端回显的掩码，代表「没改」，沿用库里那份
+      let apiPassword = a.apiPassword || '';
+      if (!apiPassword || apiPassword.startsWith('••')) {
+        apiPassword = existing?.apiPassword || '';
+      }
+      if (!apiPassword) continue;
+
+      accounts.push({
+        id: a.id || existing?.id || deriveAccountId(apiUsername),
+        name: (a.name || apiUsername).trim(),
+        apiUsername,
+        apiPassword,
+        enabled: a.enabled !== false,
+        defaultPackage: a.defaultPackage || undefined,
+        cpanelUrl: a.cpanelUrl || undefined,
+        note: a.note || undefined,
+      });
     }
 
-    const newSettings: MOFHConfig = {
-      enabled: config.enabled ?? false,
-      apiUsername: config.apiUsername || '',
-      apiPassword: config.apiPassword || '',
-      defaultPackage: config.defaultPackage || '',
-      cpanelUrl: config.cpanelUrl || '',
-      customNameservers: config.customNameservers || '',
+    const strategy: MOFHStrategy = body.strategy === 'round-robin' ? 'round-robin' : 'least-loaded';
+
+    const newSettings = {
+      enabled: body.enabled === true,
+      strategy,
+      defaultPackage: body.defaultPackage || '',
+      cpanelUrl: body.cpanelUrl || '',
+      customNameservers: body.customNameservers || '',
+      accounts,
+      // 顶层凭据保留一份镜像（= 第一个账号），万一回滚到旧版本镜像也还能用
+      apiUsername: accounts[0]?.apiUsername || '',
+      apiPassword: accounts[0]?.apiPassword || '',
     };
 
-    // Save to database
     await prisma.setting.upsert({
       where: { key: 'mofh_config' },
       update: { value: JSON.stringify(newSettings) },
       create: { key: 'mofh_config', value: JSON.stringify(newSettings) },
     });
 
-    res.json({ 
-      message: 'MOFH settings updated successfully',
-    });
+    res.json({ message: 'MOFH settings updated successfully', accountsCount: accounts.length });
   } catch (error) {
     console.error('Update MOFH settings error:', error);
     res.status(500).json({ error: 'Failed to update MOFH settings' });
@@ -436,128 +456,66 @@ router.put('/mofh', adminMiddleware, async (req: AuthenticatedRequest, res: Resp
 // Test MOFH connection (admin only)
 router.post('/mofh/test', adminMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { apiUsername, apiPassword } = req.body;
-
-    // First try version endpoint (no auth needed)
-    const versionResponse = await fetch('https://panel.myownfreehost.net/json-api/version.php');
-    if (!versionResponse.ok) {
-      return res.status(400).json({ 
-        success: false,
-        error: 'Cannot connect to MOFH API server' 
-      });
-    }
-    const versionData = await versionResponse.json() as { version: string };
-
-    // Then try to list packages with credentials
-    const username = apiUsername;
-    let password = apiPassword;
-
-    // If masked password, get from database
-    if (password && password.startsWith('••••••••')) {
-      const setting = await prisma.setting.findUnique({
-        where: { key: 'mofh_config' },
-      });
-      if (setting) {
-        const settings = JSON.parse(setting.value) as MOFHConfig;
-        password = settings.apiPassword;
-      }
-    }
-
-    const authString = Buffer.from(`${username}:${password}`).toString('base64');
-    const packagesResponse = await fetch('https://panel.myownfreehost.net/json-api/listpkgs.php', {
-      headers: {
-        'Authorization': `Basic ${authString}`,
-      },
-    });
-
-    const packagesData = await packagesResponse.json() as { 
-      package?: Array<{ name: string }>;
-      cpanelresult?: {
-        error?: string;
-        data?: { reason?: string };
-      };
+    const { accountId, apiUsername, apiPassword } = req.body as {
+      accountId?: string;
+      apiUsername?: string;
+      apiPassword?: string;
     };
 
-    // Check for error in response body (MOFH returns 200 even on auth failure)
-    if (packagesData.cpanelresult?.error) {
-      const errorMessage = packagesData.cpanelresult.data?.reason || packagesData.cpanelresult.error;
-      
-      // Detect specific error types
-      let friendlyMessage = 'API connection failed';
-      if (errorMessage.toLowerCase().includes('ip') || errorMessage.toLowerCase().includes('whitelist')) {
-        friendlyMessage = 'IP address not whitelisted on MOFH';
-      } else if (errorMessage.toLowerCase().includes('username') || errorMessage.toLowerCase().includes('invalid')) {
-        friendlyMessage = 'Invalid API credentials';
-      } else if (errorMessage.toLowerCase().includes('password') || errorMessage.toLowerCase().includes('key')) {
-        friendlyMessage = 'Invalid API password/key';
+    const cfg = await loadMOFHConfig();
+
+    // 优先按账号 id 用库里存的凭据（密码不用经过前端）
+    let account = accountId ? cfg.accounts.find((a) => a.id === accountId) || null : null;
+
+    // 否则用表单里填的（密码是掩码就从库里补）
+    if (!account && apiUsername) {
+      const existing = cfg.accounts.find((a) => a.apiUsername === apiUsername);
+      const pwd = !apiPassword || apiPassword.startsWith('••')
+        ? existing?.apiPassword || ''
+        : apiPassword;
+      if (pwd) {
+        account = {
+          id: accountId || existing?.id || deriveAccountId(apiUsername),
+          name: existing?.name || apiUsername,
+          apiUsername,
+          apiPassword: pwd,
+          enabled: true,
+        };
       }
-      
-      return res.json({ 
-        success: false,
-        message: friendlyMessage,
-        error: errorMessage,
-        apiVersion: versionData.version,
-      });
     }
 
-    // Check if packages array exists (valid response)
-    if (!packagesData.package) {
-      return res.json({ 
-        success: false,
-        message: 'Invalid response from MOFH API',
-        apiVersion: versionData.version,
-      });
+    if (!account) {
+      return res.status(400).json({ success: false, error: 'Missing MOFH credentials to test' });
     }
 
-    res.json({ 
-      success: true,
-      message: 'MOFH API connection successful!',
-      apiVersion: versionData.version,
-      packagesCount: packagesData.package.length,
-    });
+    const result = await testAccount(account);
+    res.json(result);
   } catch (error) {
     console.error('Test MOFH connection error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: 'Failed to connect to MOFH API' 
+      error: 'Failed to connect to MOFH API',
     });
   }
 });
 
 // Get MOFH packages (admin only)
+// 不同分销商的套餐列表是各自独立的，所以要指定账号（默认用第一个启用账号）
 router.get('/mofh/packages', adminMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const setting = await prisma.setting.findUnique({
-      where: { key: 'mofh_config' },
-    });
+    const accountId = typeof req.query.accountId === 'string' ? req.query.accountId : undefined;
+    const cfg = await loadMOFHConfig();
 
-    if (!setting) {
+    const account =
+      (accountId ? cfg.accounts.find((a) => a.id === accountId) : undefined) ||
+      cfg.enabledAccounts[0];
+
+    if (!account) {
       return res.status(400).json({ error: 'MOFH not configured' });
     }
 
-    const settings = JSON.parse(setting.value) as MOFHConfig;
-
-    if (!settings.apiUsername || !settings.apiPassword) {
-      return res.status(400).json({ error: 'MOFH credentials not set' });
-    }
-
-    const authString = Buffer.from(`${settings.apiUsername}:${settings.apiPassword}`).toString('base64');
-    const response = await fetch('https://panel.myownfreehost.net/json-api/listpkgs.php', {
-      headers: {
-        'Authorization': `Basic ${authString}`,
-      },
-    });
-
-    if (!response.ok) {
-      return res.status(400).json({ error: 'Failed to fetch packages from MOFH' });
-    }
-
-    const data = await response.json() as { package?: Array<{ name: string }> };
-    const packages = data.package?.map((pkg: { name: string }) => ({
-      name: pkg.name,
-    })) || [];
-
-    res.json({ packages });
+    const packages = await fetchPackages(account);
+    res.json({ packages: packages.map((name) => ({ name })) });
   } catch (error) {
     console.error('Get MOFH packages error:', error);
     res.status(500).json({ error: 'Failed to get MOFH packages' });
@@ -565,25 +523,14 @@ router.get('/mofh/packages', adminMiddleware, async (req: AuthenticatedRequest, 
 });
 
 // Get public MOFH info (for frontend - no auth required)
-router.get('/mofh/public', async (req, res: Response) => {
+router.get('/mofh/public', async (_req, res: Response) => {
   try {
-    const setting = await prisma.setting.findUnique({
-      where: { key: 'mofh_config' },
-    });
-
-    if (!setting) {
-      return res.json({ 
-        enabled: false,
-        cpanelUrl: '',
-      });
-    }
-
-    const settings = JSON.parse(setting.value) as MOFHConfig;
+    const cfg = await loadMOFHConfig();
 
     // Only return public info (no credentials)
     res.json({
-      enabled: settings.enabled,
-      cpanelUrl: settings.cpanelUrl || '',
+      enabled: cfg.enabled && cfg.enabledAccounts.length > 0,
+      cpanelUrl: cfg.cpanelUrl || cfg.enabledAccounts[0]?.cpanelUrl || '',
     });
   } catch (error) {
     console.error('Get public MOFH info error:', error);

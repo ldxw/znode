@@ -123,6 +123,8 @@ model Hosting {
   cpanelApproved   Boolean          @default(false)
   cpanelApprovedAt DateTime?
   isCustomDomain   Boolean          @default(false)
+  /** 建站时使用的 MOFH 账号 id（多账号支持；老数据为空，按第一个账号处理） */
+  mofhAccountId    String?
   databases        Database[]
   user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   sslCertificates  SSLCertificate[]

@@ -5,6 +5,18 @@ import { sendTemplateEmail } from '../lib/email.js';
 import { notifyHostingCreated } from '../lib/notification.js';
 import { Resolver } from 'dns/promises';
 import { verifyTurnstileForService } from '../lib/turnstile.js';
+import {
+  loadMOFHConfig,
+  getUsableMOFHConfig,
+  getAccount,
+  pickAccount,
+  packageForAccount,
+  cpanelUrlForAccount,
+  mofhJsonRequest,
+  mofhXmlRequest,
+  type MOFHAccount,
+  type ResolvedMOFHConfig,
+} from '../lib/mofh.js';
 
 const router = Router();
 
@@ -17,34 +29,30 @@ const DEFAULT_NAMESERVERS = [
   'ns5.byet.org',
 ];
 
-// MOFH API Configuration
-interface MOFHConfig {
-  enabled: boolean;
-  apiUsername: string;
-  apiPassword: string;
-  defaultPackage: string;
-  cpanelUrl: string;
-  customNameservers?: string; // Comma-separated custom nameservers
-}
-
 // Get allowed nameservers (custom or default BYET)
 async function getAllowedNameservers(): Promise<string[]> {
-  const setting = await prisma.setting.findUnique({
-    where: { key: 'mofh_config' },
-  });
-  
-  if (setting) {
-    const config = JSON.parse(setting.value);
-    if (config.customNameservers && config.customNameservers.trim()) {
-      // Parse custom nameservers (comma-separated)
-      return config.customNameservers
-        .split(',')
-        .map((ns: string) => ns.trim().toLowerCase())
-        .filter((ns: string) => ns.length > 0);
-    }
+  const config = await loadMOFHConfig();
+
+  if (config.customNameservers && config.customNameservers.trim()) {
+    // Parse custom nameservers (comma-separated)
+    return config.customNameservers
+      .split(',')
+      .map((ns: string) => ns.trim().toLowerCase())
+      .filter((ns: string) => ns.length > 0);
   }
-  
+
   return DEFAULT_NAMESERVERS;
+}
+
+/**
+ * 找到某个 hosting 所属的 MOFH 账号。
+ * 多账号前的历史数据 mofhAccountId 为空，退回第一个启用账号（那时的凭据就是它）。
+ */
+function accountForHosting(
+  cfg: ResolvedMOFHConfig,
+  hosting: { mofhAccountId?: string | null },
+): MOFHAccount | null {
+  return getAccount(cfg, hosting.mofhAccountId) || cfg.enabledAccounts[0] || null;
 }
 
 // Check if domain has correct nameservers
@@ -183,62 +191,7 @@ async function checkDomainNameservers(domain: string): Promise<{ valid: boolean;
   }
 }
 
-// Get MOFH config from database
-async function getMOFHConfig(): Promise<MOFHConfig | null> {
-  const setting = await prisma.setting.findUnique({
-    where: { key: 'mofh_config' },
-  });
-  
-  if (!setting) return null;
-  
-  const config = JSON.parse(setting.value) as MOFHConfig;
-  if (!config.enabled || !config.apiUsername || !config.apiPassword) {
-    return null;
-  }
-  
-  return config;
-}
-
-// Make MOFH JSON API request (for create, suspend, unsuspend, etc.)
-async function mofhJsonRequest(endpoint: string, data: Record<string, string>, config: MOFHConfig) {
-  const authString = Buffer.from(`${config.apiUsername}:${config.apiPassword}`).toString('base64');
-  
-  const params = new URLSearchParams(data);
-  const response = await fetch(`https://panel.myownfreehost.net/json-api/${endpoint}`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Basic ${authString}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: params.toString(),
-  });
-  
-  return response;
-}
-
-// Make MOFH XML API request (for getuserdomains, etc. - requires api_user & api_key in body)
-async function mofhXmlRequest(endpoint: string, data: Record<string, string>, config: MOFHConfig) {
-  const authString = Buffer.from(`${config.apiUsername}:${config.apiPassword}`).toString('base64');
-  
-  // XML API requires api_user and api_key in body
-  const fullData = {
-    api_user: config.apiUsername,
-    api_key: config.apiPassword,
-    ...data,
-  };
-  
-  const params = new URLSearchParams(fullData);
-  const response = await fetch(`https://panel.myownfreehost.net/xml-api/${endpoint}`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Basic ${authString}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: params.toString(),
-  });
-  
-  return response;
-}
+// MOFH 配置读取与请求封装已移到 ../lib/mofh.ts（多账号支持）
 
 // Generate a random password
 function generatePassword(length = 12): string {
@@ -450,7 +403,7 @@ router.get('/:username/cpanel-login', async (req: AuthenticatedRequest, res: Res
     }
     
     // Get cPanel URL from settings
-    const mofhConfig = await getMOFHConfig();
+    const mofhConfig = await getUsableMOFHConfig();
     const cpanelUrl = mofhConfig?.cpanelUrl || 'https://cpanel.byethost.com';
     
     res.json({ 
@@ -532,7 +485,7 @@ router.get('/:username', authMiddleware, async (req: AuthenticatedRequest, res: 
     }
     
     // Get cPanel URL from settings
-    const mofhConfig = await getMOFHConfig();
+    const mofhConfig = await getUsableMOFHConfig();
     const cpanelUrl = mofhConfig?.cpanelUrl || 'https://cpanel.byethost.com';
     
     // Get first allowed domain for SQL server display (custom domains)
@@ -690,7 +643,7 @@ router.post('/create', authMiddleware, async (req: AuthenticatedRequest, res: Re
     }
     
     // Get MOFH config
-    const mofhConfig = await getMOFHConfig();
+    const mofhConfig = await getUsableMOFHConfig();
     if (!mofhConfig) {
       return res.status(500).json({ error: 'Hosting service is not configured' });
     }
@@ -710,14 +663,22 @@ router.post('/create', authMiddleware, async (req: AuthenticatedRequest, res: Re
     // Generate random password for the hosting account
     const hostingPassword = generatePassword(12);
     
+    // 按策略挑一个 MOFH 账号来建站（多账号支持：least-loaded / round-robin）
+    const mofhAccount = await pickAccount(mofhConfig);
+    if (!mofhAccount) {
+      return res.status(500).json({ error: 'No MOFH account available' });
+    }
+    const plan = packageForAccount(mofhConfig, mofhAccount);
+    console.log(`[MOFH Create Account] 使用账号 ${mofhAccount.name} (${mofhAccount.id})，套餐 ${plan}`);
+
     // Create account via MOFH JSON API
     const mofhResp = await mofhJsonRequest('createacct.php', {
       username: accountUsername,
       password: hostingPassword,
       contactemail: userEmail,
       domain: fullDomain,
-      plan: mofhConfig.defaultPackage,
-    }, mofhConfig);
+      plan,
+    }, mofhAccount);
     
     const mofhText = await mofhResp.text();
     console.log('[MOFH Create Account] Raw:', mofhText);
@@ -764,10 +725,12 @@ router.post('/create', authMiddleware, async (req: AuthenticatedRequest, res: Re
         username: accountUsername,
         password: hostingPassword, // Store password for user to view later
         domain: fullDomain,
-        package: mofhConfig.defaultPackage,
+        package: plan,
         status: 'PENDING', // Will be updated by callback
         label: label || null,
         isCustomDomain: isCustomDomain || false,
+        // 记录实际使用的分销账号，之后暂停/恢复/同步都靠它找回对应凭据
+        mofhAccountId: mofhAccount.id,
       },
     });
     
@@ -893,17 +856,23 @@ router.post('/:username/change-password', authMiddleware, async (req: Authentica
     }
     
     // Get MOFH config
-    const mofhConfig = await getMOFHConfig();
+    const mofhConfig = await getUsableMOFHConfig();
     if (!mofhConfig) {
       return res.status(500).json({ error: 'Hosting service is not configured' });
     }
     
+    // 找到该主机所属的 MOFH 账号（多账号支持）
+    const mofhAccount = accountForHosting(mofhConfig, hosting);
+    if (!mofhAccount) {
+      return res.status(500).json({ error: 'MOFH account for this hosting was not found' });
+    }
+
     // Call MOFH API to change password
     // API uses the 8-char username (not vpUsername), but MOFH JSON API accepts vpUsername too
     const mofhResp = await mofhJsonRequest('passwd.php', {
       user: hosting.username, // The 8-char custom username
       pass: newPassword,
-    }, mofhConfig);
+    }, mofhAccount);
     
     const mofhText = await mofhResp.text();
     console.log('[MOFH Change Password] Raw:', mofhText);
@@ -1015,7 +984,7 @@ router.post('/:username/deactivate', authMiddleware, async (req: AuthenticatedRe
     }
     
     // Get MOFH config
-    const mofhConfig = await getMOFHConfig();
+    const mofhConfig = await getUsableMOFHConfig();
     if (!mofhConfig) {
       console.log('[DEACTIVATE] MOFH config not found');
       return res.status(500).json({ error: 'MOFH is not configured' });
@@ -1023,12 +992,18 @@ router.post('/:username/deactivate', authMiddleware, async (req: AuthenticatedRe
     
     console.log('[DEACTIVATE] Calling MOFH suspend API for username:', hosting.username);
     
+    // 找到该主机所属的 MOFH 账号（多账号支持）
+    const mofhAccount = accountForHosting(mofhConfig, hosting);
+    if (!mofhAccount) {
+      return res.status(500).json({ error: 'MOFH account for this hosting was not found' });
+    }
+
     // Call MOFH JSON API to suspend account
     // Note: MOFH API requires the 8-character username, not the full vpUsername
     const mofhResp = await mofhJsonRequest('suspendacct.php', {
       user: hosting.username, // Use the 8-char username, not vpUsername
       reason: reason || 'User requested deactivation',
-    }, mofhConfig);
+    }, mofhAccount);
     
     const mofhData = await mofhResp.json();
     console.log('[MOFH Suspend]', hosting.username, 'Response:', JSON.stringify(mofhData));
@@ -1099,16 +1074,22 @@ router.post('/:username/reactivate', authMiddleware, async (req: AuthenticatedRe
     }
     
     // Get MOFH config
-    const mofhConfig = await getMOFHConfig();
+    const mofhConfig = await getUsableMOFHConfig();
     if (!mofhConfig) {
       return res.status(500).json({ error: 'MOFH is not configured' });
     }
     
+    // 找到该主机所属的 MOFH 账号（多账号支持）
+    const mofhAccount = accountForHosting(mofhConfig, hosting);
+    if (!mofhAccount) {
+      return res.status(500).json({ error: 'MOFH account for this hosting was not found' });
+    }
+
     // Call MOFH JSON API to unsuspend account
     // Note: MOFH API requires the 8-character username, not the full vpUsername
     const mofhResp = await mofhJsonRequest('unsuspendacct.php', {
       user: hosting.username, // Use the 8-char username, not vpUsername
-    }, mofhConfig);
+    }, mofhAccount);
     
     const mofhData = await mofhResp.json();
     console.log('[MOFH Unsuspend]', hosting.username, 'Response:', JSON.stringify(mofhData));
@@ -1162,15 +1143,21 @@ router.post('/:username/sync', authMiddleware, async (req: AuthenticatedRequest,
     }
     
     // Get MOFH config
-    const mofhConfig = await getMOFHConfig();
+    const mofhConfig = await getUsableMOFHConfig();
     if (!mofhConfig) {
       return res.status(500).json({ error: 'MOFH is not configured' });
     }
     
+    // 找到该主机所属的 MOFH 账号（多账号支持）
+    const mofhAccount = accountForHosting(mofhConfig, hosting);
+    if (!mofhAccount) {
+      return res.status(500).json({ error: 'MOFH account for this hosting was not found' });
+    }
+
     // Query MOFH XML API for account status using getuserdomains endpoint
     const mofhResp = await mofhXmlRequest('getuserdomains.php', {
       username: vpUsername,
-    }, mofhConfig);
+    }, mofhAccount);
     
     const mofhText = await mofhResp.text();
     console.log('[MOFH Sync]', vpUsername, 'Raw:', mofhText);
