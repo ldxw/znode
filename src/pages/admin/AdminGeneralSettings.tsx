@@ -152,6 +152,7 @@ const AdminGeneralSettings = () => {
       createTicket: false,
       replyTicket: false,
     },
+    imgbbApiKey: '',
   });
   const [saving, setSaving] = useState(false);
   const [showSecretKey, setShowSecretKey] = useState(false);

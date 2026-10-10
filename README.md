@@ -2,6 +2,8 @@
 
 A modern free hosting management panel built with React + Node.js. Integrates with [MyOwnFreeHost (MOFH)](https://myownfreehost.net) API for automated hosting provisioning.
 
+> **English** · [简体中文](README.zh.md)
+
 <p align="center">
   <img src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react" alt="React 19">
   <img src="https://img.shields.io/badge/TypeScript-5.6-3178C6?style=flat-square&logo=typescript" alt="TypeScript">
@@ -70,6 +72,34 @@ docker compose --profile migrate run --rm migrate
 
 If you skip it, the tables will be missing and the API will report database errors.
 
+## What this fork adds
+
+This repository is a fork of [bixacloud/znode](https://github.com/bixacloud/znode). On top of the
+upstream feature set it adds:
+
+- **Multi-reseller MOFH support** — configure several MOFH reseller accounts side by side, each with
+  its own default package, cPanel URL, nameservers and note. Old single-account configs are migrated
+  to a "default account" automatically, so existing credentials keep working.
+- **Hosting plans** — build your own plan catalogue (specs, features, stock limit, featured flag,
+  ordering) and bind each plan to a MOFH package on a specific reseller account. Users pick a plan
+  when they sign up; plans can be grouped by reseller account.
+- **Front-end account selection** — when more than one reseller account is configured the user picks
+  which one their hosting is created under, instead of leaving it to the assignment strategy.
+- **User levels** — tiered user levels; each level can be granted hosting plans and reseller
+  accounts. Users upgrade by redeeming a code.
+- **Activation codes and invite codes** — one code table, two purposes: *activation* (upgrade a
+  user's level) and *invitation* (required to sign up, optionally granting a starting level).
+  Both support stock limits, expiry dates and a per-code usage log.
+- **Registration controls** — close sign-ups entirely, and/or require an invitation code.
+- **Cloudflare Turnstile everywhere** — captcha is enforced server-side for login, registration,
+  email verification, creating hosting, hosting settings, SSL requests, opening and replying to
+  tickets; each service has its own toggle.
+- **Full Chinese translations** plus all four locale files kept in sync — run `npm run check:locales`
+  to verify.
+
+See [CHANGELOG.md](CHANGELOG.md) for the details, and [README.zh.md](README.zh.md) for the Chinese
+version of this document.
+
 ## Features
 
 **For Users**
@@ -79,6 +109,8 @@ If you skip it, the tables will be missing and the API will report database erro
 - 🎫 Support ticket system
 - 📚 Knowledge base
 - 🔐 Two-factor authentication (TOTP)
+- 🎚️ User levels, unlocked with an activation code
+- 📋 Hosting plans to pick from — including which reseller account serves them
 - 🌍 Multilingual (English, Tiếng Việt, 中文, Filipino)
 
 **For Admins**
@@ -87,6 +119,11 @@ If you skip it, the tables will be missing and the API will report database erro
 - 💾 Backup & restore (local, FTP, SFTP, Google Drive)
 - 🎨 Landing page builder (GrapesJS)
 - 📦 Data import from Bixa (PHP)
+- 🏢 Multiple MOFH reseller accounts, with per-account overrides
+- 📦 Hosting plan catalogue (specs, features, stock, featured, ordering)
+- 🎚️ User levels, activation codes and invite codes
+- 🚪 Registration switches (close sign-ups / require an invite code)
+- 🛡️ Cloudflare Turnstile toggles per service
 - ⚙️ OAuth, SSL, domain, and site settings
 
 **Developer Tools** — CDN search, code beautifier, Base64, color tools, CSS grid generator
@@ -221,6 +258,16 @@ The setup wizard creates `.env` automatically. Key variables:
 | `SESSION_SECRET` | Session key (auto-generated) |
 | `FRONTEND_URL` | Your domain URL |
 | `API_URL` | API base URL (same as frontend) |
+
+## Maintenance
+
+```bash
+npm run check:locales          # verify en/zh/vi/fil keep exactly the same key set
+cd backend && npx prisma generate   # regenerate the Prisma client after editing the schema
+```
+
+After a schema change, apply it on a running deployment with the one-shot migration service
+(see *Applying schema changes* above).
 
 
 
