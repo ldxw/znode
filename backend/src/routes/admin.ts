@@ -518,19 +518,35 @@ router.get('/health', adminMiddleware, async (req: AuthenticatedRequest, res: Re
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 10000);
         try {
-          const resp = await fetch('https://panel.myownfreehost.net/json-api/getdomainlist', {
-            method: 'POST',
+          // 两处都要注意（2026-10 实测）：
+          //  1) 端点必须是 listpkgs.php。MOFH 上没有 getdomainlist 这个路径 —— 请求会被
+          //     改写成 getdomainlist.php 再 404。原实现写成 getdomainlist，导致仪表盘
+          //     永远报 "MOFH returned 404"，而设置页的「测试」（用 listpkgs.php）却是好的。
+          //  2) MOFH 认证失败也返回 HTTP 200，必须解析响应体里的 cpanelresult.error，
+          //     只看 resp.ok 会把凭据错误/IP 未白名单假报成 online。
+          const resp = await fetch('https://panel.myownfreehost.net/json-api/listpkgs.php', {
             headers: {
               'Authorization': `Basic ${authString}`,
-              'Content-Type': 'application/x-www-form-urlencoded',
             },
-            body: new URLSearchParams({ api_user: mofhConfig.apiUsername, api_key: mofhConfig.apiPassword }).toString(),
             signal: controller.signal,
           });
           clearTimeout(timeout);
-          checks.mofh = resp.ok || resp.status === 200
-            ? { status: 'online', latency: Date.now() - mofhStart, message: 'MOFH connection OK' }
-            : { status: 'offline', latency: Date.now() - mofhStart, message: `MOFH returned ${resp.status}` };
+          if (!resp.ok) {
+            checks.mofh = { status: 'offline', latency: Date.now() - mofhStart, message: `MOFH returned ${resp.status}` };
+          } else {
+            const mofhData = (await resp.json().catch(() => ({}))) as {
+              package?: unknown[];
+              cpanelresult?: { error?: string; data?: { reason?: string } };
+            };
+            const mofhApiError = mofhData.cpanelresult?.error;
+            checks.mofh = mofhApiError
+              ? {
+                  status: 'offline',
+                  latency: Date.now() - mofhStart,
+                  message: `MOFH: ${mofhData.cpanelresult?.data?.reason || mofhApiError}`,
+                }
+              : { status: 'online', latency: Date.now() - mofhStart, message: 'MOFH connection OK' };
+          }
         } catch (fetchErr: any) {
           clearTimeout(timeout);
           checks.mofh = { status: 'offline', latency: Date.now() - mofhStart, message: fetchErr.name === 'AbortError' ? 'MOFH timeout (10s)' : (fetchErr.message || 'MOFH connection failed') };
