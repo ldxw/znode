@@ -81,6 +81,7 @@ const AdminLayout = ({ children, defaultCollapsed = false }: AdminLayoutProps) =
     userManagement: t.admin?.userManagement || "User Management",
     hostingManagement: t.admin?.hostingManagement || "Hosting Management",
     supportTickets: t.admin?.supportTickets || "Support Tickets",
+    supportRatings: t.admin?.supportRatings || "Support Ratings",
     settings: t.admin?.settings || "Settings",
     accountSettings: t.admin?.accountSettings || "Account Settings",
     oauthProviders: t.admin?.oauthProviders || "OAuth Providers",
@@ -162,7 +163,7 @@ const AdminLayout = ({ children, defaultCollapsed = false }: AdminLayoutProps) =
       ],
     },
     {
-      title: "Email",
+      title: t.admin?.email || "Email",
       icon: Mail,
       children: [
         { title: adminT.emailTemplates, href: "/admin/email/templates", icon: Mail },

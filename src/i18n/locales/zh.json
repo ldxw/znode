@@ -771,6 +771,7 @@
     "allowedDomains": "允许的域名",
     "generalSettings": "常规设置",
     "emailSmtp": "邮箱和SMTP",
+    "email": "邮箱",
     "smtpSettings": "SMTP 设置",
     "smtpSettingsDescription": "配置用于发送邮件的 SMTP 服务器",
     "smtpConfiguration": "SMTP 配置",
