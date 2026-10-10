@@ -28,7 +28,21 @@
     "active": "活跃",
     "inactive": "未激活",
     "refresh": "刷新",
-    "copied": "已复制！"
+    "copied": "已复制！",
+    "clear": "清空",
+    "copy": "复制",
+    "dashboard": "/dashboard",
+    "daysAgo": "天前",
+    "hoursAgo": "小时前",
+    "justNow": "刚刚",
+    "loadMore": "加载更多",
+    "minutesAgo": "分钟前",
+    "networkError": "网络错误，请重试。",
+    "processing": "处理中…",
+    "retry": "重试",
+    "sending": "发送中…",
+    "status": "待处理",
+    "verifying": "验证中…"
   },
   "userSettings": {
     "title": "设置",
@@ -77,7 +91,15 @@
     "disable2FAWarning": "禁用双因素认证将降低您账户的安全性。",
     "twoFactorCode": "双因素验证码",
     "passwordRequired": "需要密码",
-    "passwordRequiredDesc": "请在启用双因素认证之前设置密码。"
+    "passwordRequiredDesc": "请在启用双因素认证之前设置密码。",
+    "copyAll": "全部复制",
+    "download": "下载",
+    "recoveryCodesCopied": "已复制",
+    "recoveryCodesCopiedDesc": "恢复码已复制到剪贴板",
+    "recoveryCodesDesc": "请把这些恢复码保存在安全的地方。如果你无法使用验证器 App，每个恢复码只能用于登录一次。",
+    "recoveryCodesTitle": "恢复码",
+    "recoveryCodesWarning": "这些恢复码只会显示这一次，请立刻保存。",
+    "savedCodes": "我已保存这些恢复码"
   },
   "adminSettings": {
     "accountTitle": "账户设置",
@@ -90,7 +112,9 @@
     "signatureHint": "支持基本markdown：**粗体**、*斜体*、__下划线__",
     "preview": "预览",
     "signatureSaved": "签名已保存",
-    "signatureSavedDesc": "您的签名已更新"
+    "signatureSavedDesc": "您的签名已更新",
+    "saveSignature": "保存签名",
+    "signatureEditor": "签名编辑器"
   },
   "nav": {
     "dashboard": "仪表板",
@@ -110,24 +134,95 @@
   "tools": {
     "base64": {
       "title": "Base64编码/解码器",
-      "subtitle": "将文本、文件和图像编码/解码为Base64格式"
+      "subtitle": "将文本、文件和图像编码/解码为Base64格式",
+      "base64ToFile": "Base64 转文件",
+      "base64ToImage": "Base64 转图片",
+      "convert": "转换",
+      "convertToFile": "转换为文件",
+      "decode": "解码",
+      "downloadFile": "下载文件",
+      "downloadImage": "下载图片",
+      "dragDrop": "点击或拖拽文件到这里",
+      "encode": "编码",
+      "enterBase64": "输入 Base64 字符串…",
+      "fileTab": "文件",
+      "fileTooLarge": "文件太大，最大 5MB",
+      "imageTab": "图片",
+      "includeDataHeader": "包含 data:image 头",
+      "inputPlaceholder": "输入要编码/解码的文本…",
+      "invalidBase64": "Base64 字符串无效",
+      "maxSize": "最大 5MB",
+      "mimeType": "MIME 类型（可选）",
+      "noContent": "没有可处理的内容",
+      "outputFilename": "输出文件名",
+      "outputPlaceholder": "结果显示在这里…",
+      "preview": "预览",
+      "textTab": "文本"
     },
     "caseConverter": {
       "title": "大小写转换器",
-      "subtitle": "一键将文本转换为不同的大小写格式"
+      "subtitle": "一键将文本转换为不同的大小写格式",
+      "alternatingCase": "交替大小写",
+      "capitalizedCase": "首字母大写",
+      "cleared": "已清空文本",
+      "converted": "转换完成！",
+      "downloadText": "下载文本",
+      "downloaded": "文本已下载！",
+      "inverseCase": "反转大小写",
+      "lowerCase": "全部小写",
+      "noText": "请先输入一些文本",
+      "placeholder": "在这里输入文本，转换成各种大小写形式…",
+      "sentenceCase": "句首大写",
+      "titleCase": "标题式大小写",
+      "upperCase": "全部大写"
     },
     "codeBeautifier": {
       "title": "代码美化器",
-      "subtitle": "格式化、美化或压缩您的HTML、CSS和JavaScript代码"
+      "subtitle": "格式化、美化或压缩您的HTML、CSS和JavaScript代码",
+      "beautified": "代码美化成功！",
+      "beautify": "美化",
+      "cleared": "编辑器已清空！",
+      "indentSize": "缩进宽度",
+      "inputCode": "输入代码",
+      "language": "语言",
+      "minified": "代码压缩成功！",
+      "minify": "压缩",
+      "noCode": "请先输入一些代码",
+      "outputCode": "输出代码",
+      "useAsInput": "用作输入"
     },
     "colorTools": {
       "title": "颜色工具",
-      "subtitle": "选择、转换、混合颜色并生成渐变"
+      "subtitle": "选择、转换、混合颜色并生成渐变",
+      "colorMixer": "颜色混合器",
+      "colorPicker": "取色器",
+      "colorValues": "颜色数值",
+      "colorVariations": "颜色变体",
+      "complementary": "互补色",
+      "copyCode": "复制 CSS",
+      "darker": "更深",
+      "gradientAngle": "角度",
+      "gradientGenerator": "渐变生成器",
+      "gradientType": "类型",
+      "lighter": "更浅",
+      "linear": "线性",
+      "mixRatio": "混合比例",
+      "radial": "径向",
+      "result": "结果",
+      "swap": "互换"
     },
     "cssGrid": {
       "title": "CSS网格生成器",
-      "subtitle": "轻松创建自定义CSS网格布局"
-    }
+      "subtitle": "轻松创建自定义CSS网格布局",
+      "clickToAdd": "点击空白格添加元素",
+      "columns": "列数",
+      "cssCode": "CSS",
+      "gap": "间距（px）",
+      "htmlCode": "HTML",
+      "reset": "重置",
+      "rows": "行数"
+    },
+    "title": "开发者工具"
   },
   "cdnSearch": {
     "title": "CDN库搜索",
@@ -302,7 +397,9 @@
       "savedDesc": "项目已保存并发布！",
       "saveProject": "保存并发布",
       "savePublish": "保存并发布"
-    }
+    },
+    "adminSuspended": "管理员已暂停",
+    "details": "主机详情"
   },
   "upgrade": {
     "title": "升级到高级版",
@@ -479,7 +576,9 @@
         "q": "工单回复时间是多久？",
         "a": "我们通常在24个工作小时内回复。"
       }
-    ]
+    ],
+    "supportTeam": "客服团队",
+    "you": "你"
   },
   "auth": {
     "login": "登录",
@@ -566,7 +665,31 @@
     "otpCode": "OTP验证码",
     "otpRequired": "请输入邮箱中的OTP验证码",
     "otpSentToEmail": "输入发送到您邮箱的6位数验证码",
-    "captchaVerification": "验证码验证"
+    "captchaVerification": "验证码验证",
+    "checkSpam": "如果没收到，请检查垃圾邮件文件夹。",
+    "emailRequired": "请输入邮箱",
+    "enterRecoveryCode": "请输入恢复码",
+    "forgotPasswordDesc": "输入你的邮箱，我们会发送重置密码链接",
+    "invalidLink": "链接无效",
+    "invalidToken": "令牌无效或缺失",
+    "loginNow": "立即登录",
+    "newPassword": "新密码",
+    "notLoggedIn": "未登录",
+    "passwordRequired": "请输入密码",
+    "passwordResetSuccess": "密码已重置成功",
+    "passwordResetTitle": "重置密码",
+    "passwordTooShort": "密码至少需要 6 位字符",
+    "recoveryCode": "恢复码",
+    "recoveryCodeHint": "输入你保存的其中一个恢复码",
+    "recoveryCodeSubtitle": "输入你的其中一个恢复码",
+    "requestNewLink": "请重新申请一个重置密码链接。",
+    "requestNewReset": "重新申请重置链接",
+    "resetEmailSent": "如果该邮箱对应的账号存在，我们已发送重置密码链接，请查收收件箱。",
+    "resetPassword": "重置密码",
+    "resetPasswordDesc": "为以下账号设置新密码：",
+    "sendResetLink": "发送重置链接",
+    "useAuthenticatorApp": "改用验证器 App",
+    "useRecoveryCode": "使用恢复码"
   },
   "messages": {
     "error": "错误",
@@ -1080,7 +1203,53 @@
       "statusDesc": "已配置提供商的概览",
       "configured": "已配置",
       "notConfigured": "未配置"
-    }
+    },
+    "actions": "操作",
+    "active": "启用",
+    "addTemplate": "新建模板",
+    "adminSuspended": "管理员已暂停",
+    "availableVariables": "可用变量",
+    "confirmDeleteTemplate": "确定要删除这个模板吗？",
+    "createTemplate": "创建模板",
+    "custom": "自定义",
+    "customTemplates": "自定义模板",
+    "disabled": "已停用",
+    "domain": "域名",
+    "editCustomTemplateDesc": "编辑这个自定义邮件模板的内容",
+    "editSystemTemplateDesc": "编辑这个系统邮件模板的内容",
+    "editTemplate": "编辑模板",
+    "emailSettings": "邮箱设置",
+    "emailTemplatesDescription": "管理发送给用户的邮件模板",
+    "hostingStatus": "状态",
+    "hostings": "托管账户",
+    "knowledgeBase": "知识库",
+    "loginCPanel": "登录 cPanel",
+    "noCustomTemplates": "还没有自定义模板",
+    "saveTemplate": "保存模板",
+    "sslCertificateDetail": "SSL 证书详情",
+    "sslCertificates": "SSL 证书",
+    "sslCertificatesDesc": "查看和管理用户申请的 SSL 证书",
+    "suspendedByUser": "用户已暂停",
+    "system": "系统",
+    "systemTemplatesInfo": "系统模板（不可删除）",
+    "templateBody": "邮件正文",
+    "templateBodyPlaceholder": "在这里输入邮件正文，可使用 HTML",
+    "templateCode": "模板代码",
+    "templateCodeHint": "支持 HTML 与 {{变量}} 占位符",
+    "templateDeleteError": "删除模板失败",
+    "templateDeleted": "模板已删除",
+    "templateName": "模板名称",
+    "templateNamePlaceholder": "例如：欢迎邮件",
+    "templatePreview": "预览",
+    "templateSaveError": "保存模板失败",
+    "templateSaved": "模板已保存",
+    "templateSubject": "邮件主题",
+    "templateSubjectPlaceholder": "例如：欢迎加入 {{siteName}}",
+    "ticketClosedDesc": "该工单已关闭",
+    "tickets": "工单",
+    "userInfo": "用户信息",
+    "username": "用户名",
+    "viewUser": "查看用户"
   },
   "landing": {
     "hero": {
@@ -1211,7 +1380,8 @@
         "email": "邮件支持"
       },
       "copyright": "保留所有权利。"
-    }
+    },
+    "title": "首页"
   },
   "language": {
     "select": "选择语言",
@@ -1314,7 +1484,8 @@
     "feedbackPlaceholder": "告诉我们更多关于您的体验...",
     "submitRating": "提交评价",
     "relatedArticles": "可能有帮助的相关文章",
-    "kbSuggestionHint": "在创建工单之前，请检查这些文章是否能回答您的问题"
+    "kbSuggestionHint": "在创建工单之前，请检查这些文章是否能回答您的问题",
+    "ticketReopenedDesc": "该工单已重新打开"
   },
   "notification": {
     "title": "通知",
@@ -1537,7 +1708,32 @@
     "refreshStatus": "刷新状态",
     "autoInstalled": "自动安装",
     "autoInstalledDesc": "此SSL证书已自动安装到您的托管账户。无需手动操作。",
-    "verifiedAt": "验证时间"
+    "verifiedAt": "验证时间",
+    "backToList": "返回列表",
+    "caCertificate": "CA 证书",
+    "certificateContent": "证书内容",
+    "certificateContentDesc": "把下面的内容粘贴到你的服务器或面板里",
+    "certificateContentNotFound": "找不到证书内容",
+    "certificateNotFound": "找不到该证书",
+    "cnameRecord": "CNAME 记录",
+    "copiedToClipboard": "已复制到剪贴板",
+    "custom": "自定义域名",
+    "dnsVerification": "DNS 验证",
+    "dnsVerificationDescCustom": "在域名服务商处添加以下 DNS 记录，完成后点击验证",
+    "dnsVerificationDescSubdomain": "在域名服务商处添加以下 DNS 记录，完成后点击验证",
+    "domainType": "域名类型",
+    "hosting": "托管账户",
+    "issuingLogs": "签发日志",
+    "privateKeyHidden": "私钥已隐藏",
+    "privateKeyHiddenDesc": "出于安全考虑默认隐藏，点击可显示",
+    "retry": "重试",
+    "revoke": "吊销",
+    "statusFailed": "签发失败",
+    "statusIssued": "已签发",
+    "statusIssuing": "签发中",
+    "statusPending": "待验证",
+    "statusVerified": "已验证",
+    "txtRecord": "TXT 记录"
   },
   "settings": {
     "generalSettings": "常规设置",
@@ -1871,7 +2067,10 @@
     "relatedArticles": "相关文章",
     "lastUpdated": "最后更新",
     "noCategories": "暂无可用分类",
-    "noArticles": "此分类暂无文章"
+    "noArticles": "此分类暂无文章",
+    "article": "文章",
+    "moreArticles": "更多文章",
+    "showLess": "收起"
   },
   "forum": {
     "title": "社区论坛",
@@ -1968,5 +2167,37 @@
     "jumpToComments": "跳转到评论",
     "replyingToUser": "回复",
     "sharePost": "分享"
+  },
+  "support2fa": {
+    "activeTicket": "你有一个进行中的支持工单",
+    "backToLogin": "返回登录",
+    "checking": "正在检查已有工单…",
+    "clickToResume": "点击继续对话",
+    "createTicket": "创建支持工单",
+    "ctrlEnter": "Ctrl+Enter 发送",
+    "fillAllFields": "请填写所有字段",
+    "loggedAs": "账号",
+    "message": "消息",
+    "messagePlaceholder": "描述你的情况：为什么无法使用验证器 App？",
+    "replyPlaceholder": "输入你的回复…",
+    "replyTo": "我们会回复到",
+    "sendReply": "发送回复",
+    "sessionExpired": "会话已过期，请重新登录后继续。",
+    "staff": "客服",
+    "statusClosed": "已关闭",
+    "statusOpen": "进行中",
+    "statusReplied": "已回复",
+    "subject": "主题",
+    "subjectPlaceholder": "例如：无法使用验证器 App",
+    "submit": "提交工单",
+    "subtitle": "无法使用验证器 App？提交一个支持工单，我们会帮你恢复访问。",
+    "supportTeam": "客服",
+    "ticketClosed": "该工单已关闭。",
+    "ticketCreated": "工单已创建",
+    "ticketCreatedDesc": "你的支持工单已提交。我们的团队会审核你的请求，帮你恢复账号访问。",
+    "title": "二次验证支持",
+    "verifyNote": "出于安全考虑，我们的团队可能会要求你先验证身份，然后才会为你的账号关闭二次验证。",
+    "waitingReply": "等待客服回复…",
+    "you": "你"
   }
 }
