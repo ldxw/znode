@@ -1137,7 +1137,7 @@
       "strategyLeastLoaded": "按负载最少（推荐）",
       "strategyRoundRobin": "轮询",
       "strategyHint": "「按负载最少」会把新托管分给当前托管数量最少的分销账号",
-      "advancedOptions": "账号级覆盖项（套餐、cPanel 地址）",
+      "advancedOptions": "该账号自己的配置",
       "overridePackage": "覆盖套餐",
       "overridePackageHint": "留空则使用全局默认套餐",
       "overrideCpanel": "覆盖 cPanel 地址",
@@ -1151,7 +1151,9 @@
       "defaultsDesc": "账号没有单独覆盖时使用这里的值",
       "overrideNameservers": "覆盖域名服务器",
       "overrideNameserversHint": "该分销商要求用户把域名指向的域名服务器",
-      "accountPanelSetup": "这几项要在此账号对应的 MOFH 面板里单独配置"
+      "accountPanelSetup": "这几项要在此账号对应的 MOFH 面板里单独配置",
+      "advancedOptionsHint": "留空则继承下方的全局默认值",
+      "inheritPrefix": "继承："
     },
     "domains": {
       "title": "域名管理",

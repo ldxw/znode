@@ -26,8 +26,6 @@ import {
   Network,
   Plus,
   Trash2,
-  ChevronDown,
-  ChevronUp,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import AdminLayout from "@/components/admin/AdminLayout";
@@ -76,7 +74,6 @@ const MOFHSettings = () => {
   const [serverIp, setServerIp] = useState<string>("");
   const [loadingIp, setLoadingIp] = useState(true);
   const [visiblePasswords, setVisiblePasswords] = useState<Record<number, boolean>>({});
-  const [expanded, setExpanded] = useState<Record<number, boolean>>({});
   const [testingIndex, setTestingIndex] = useState<number | null>(null);
   const [config, setConfig] = useState<MOFHConfig>({
     enabled: false,
@@ -436,55 +433,43 @@ const MOFHSettings = () => {
                   </div>
                 </div>
 
-                {/* Per-account overrides */}
-                <button
-                  type="button"
-                  onClick={() => setExpanded((prev) => ({ ...prev, [index]: !prev[index] }))}
-                  className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
-                >
-                  {expanded[index] ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                  {mt.advancedOptions || 'Per-account overrides (package, cPanel URL)'}
-                </button>
-
-                {expanded[index] && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pl-1">
+                {/* 该账号自己的一套配置：常驻显示，留空则继承下面的全局默认值 */}
+                <div className="space-y-3">
+                  <div className="text-xs font-medium">
+                    {mt.advancedOptions || "This account's own settings"}
+                    <span className="ml-2 font-normal text-muted-foreground">
+                      {mt.advancedOptionsHint || 'Leave blank to inherit the global default'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-2">
-                      <Label htmlFor={`acc-pkg-${index}`}>{mt.overridePackage || 'Package override'}</Label>
+                      <Label htmlFor={`acc-pkg-${index}`}>{mt.defaultPackage || 'Package'}</Label>
                       <Input
                         id={`acc-pkg-${index}`}
-                        placeholder={config.defaultPackage || 'Default'}
+                        placeholder={`${mt.inheritPrefix || 'Inherit: '}${config.defaultPackage || '—'}`}
                         value={account.defaultPackage || ""}
                         onChange={(e) => updateAccount(index, { defaultPackage: e.target.value })}
                       />
-                      <p className="text-xs text-muted-foreground">
-                        {mt.overridePackageHint || 'Leave empty to use the global default package'}
-                      </p>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor={`acc-cpanel-${index}`}>{mt.overrideCpanel || 'cPanel URL override'}</Label>
+                      <Label htmlFor={`acc-cpanel-${index}`}>{mt.cpanelUrl || 'cPanel URL'}</Label>
                       <Input
                         id={`acc-cpanel-${index}`}
-                        placeholder={config.cpanelUrl || 'cpanel.yourdomain.com'}
+                        placeholder={`${mt.inheritPrefix || 'Inherit: '}${config.cpanelUrl || '—'}`}
                         value={account.cpanelUrl || ""}
                         onChange={(e) => updateAccount(index, { cpanelUrl: e.target.value })}
                       />
-                      <p className="text-xs text-muted-foreground">
-                        {mt.overrideCpanelHint || 'Different resellers have different panel domains'}
-                      </p>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor={`acc-ns-${index}`}>{mt.overrideNameservers || 'Nameservers override'}</Label>
+                      <Label htmlFor={`acc-ns-${index}`}>{mt.customNameservers || 'Nameservers'}</Label>
                       <Input
                         id={`acc-ns-${index}`}
-                        placeholder={config.customNameservers || 'ns1.example.com, ns2.example.com'}
+                        placeholder={`${mt.inheritPrefix || 'Inherit: '}${config.customNameservers || '—'}`}
                         value={account.customNameservers || ""}
                         onChange={(e) => updateAccount(index, { customNameservers: e.target.value })}
                       />
-                      <p className="text-xs text-muted-foreground">
-                        {mt.overrideNameserversHint || 'Nameservers this reseller asks users to point their domain at'}
-                      </p>
                     </div>
-                    <div className="space-y-2 md:col-span-2">
+                    <div className="space-y-2">
                       <Label htmlFor={`acc-note-${index}`}>{mt.note || 'Note'}</Label>
                       <Input
                         id={`acc-note-${index}`}
@@ -494,7 +479,7 @@ const MOFHSettings = () => {
                       />
                     </div>
                   </div>
-                )}
+                </div>
 
                 {/* 这个账号需要在它自己的 MOFH 面板里单独配置的东西 */}
                 <div className="rounded-md border border-dashed p-3 space-y-2 bg-background/60">

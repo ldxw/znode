@@ -1011,7 +1011,7 @@
       "strategyLeastLoaded": "Least loaded",
       "strategyRoundRobin": "Round robin",
       "strategyHint": "Least loaded sends each new account to the reseller that currently has the fewest hostings",
-      "advancedOptions": "Per-account overrides (package, cPanel URL)",
+      "advancedOptions": "This account's own settings",
       "overridePackage": "Package override",
       "overridePackageHint": "Leave empty to use the global default package",
       "overrideCpanel": "cPanel URL override",
@@ -1025,7 +1025,9 @@
       "defaultsDesc": "Used for any account that does not override them",
       "overrideNameservers": "Nameservers override",
       "overrideNameserversHint": "Nameservers this reseller asks users to point their domain at",
-      "accountPanelSetup": "Configure these in this account's MOFH panel"
+      "accountPanelSetup": "Configure these in this account's MOFH panel",
+      "advancedOptionsHint": "Leave blank to inherit the global default",
+      "inheritPrefix": "Inherit: "
     },
     "domains": {
       "title": "Domain Management",
