@@ -875,6 +875,26 @@ const defaultGeneralSettings: GeneralSettings = {
   },
 };
 
+/**
+ * 把数据库里的 general_settings 和默认值合并。
+ *
+ * 注意 turnstileServices 要**逐键**合并：老配置里存的对象没有后来新增的键
+ * （如 login / register），整体覆盖会让这些服务凭空「消失」，
+ * 后台角标也会少算、且永远不自愈。
+ */
+function mergeGeneralSettings(raw: string | null | undefined): GeneralSettings {
+  const parsed = raw ? JSON.parse(raw) : {};
+  return {
+    ...defaultGeneralSettings,
+    ...parsed,
+    turnstileServices: {
+      ...defaultGeneralSettings.turnstileServices,
+      ...(parsed.turnstileServices || {}),
+      emailVerify: true,
+    },
+  };
+}
+
 // Get general settings (admin only)
 router.get('/general', adminMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -883,7 +903,7 @@ router.get('/general', adminMiddleware, async (req: AuthenticatedRequest, res: R
     });
 
     const settings: GeneralSettings = setting?.value 
-      ? { ...defaultGeneralSettings, ...JSON.parse(setting.value) }
+      ? mergeGeneralSettings(setting.value)
       : defaultGeneralSettings;
 
     res.json(settings);
@@ -901,7 +921,7 @@ router.get('/general/public', async (req, res: Response) => {
     });
 
     const settings: GeneralSettings = setting?.value 
-      ? { ...defaultGeneralSettings, ...JSON.parse(setting.value) }
+      ? mergeGeneralSettings(setting.value)
       : defaultGeneralSettings;
 
     // Return only public fields (no secret keys)
@@ -962,7 +982,7 @@ router.put('/general', adminMiddleware, async (req: AuthenticatedRequest, res: R
     });
 
     const currentSettings: GeneralSettings = currentSetting?.value 
-      ? { ...defaultGeneralSettings, ...JSON.parse(currentSetting.value) }
+      ? mergeGeneralSettings(currentSetting.value)
       : defaultGeneralSettings;
 
     // Handle masked turnstileSecretKey - keep old value if masked
@@ -1021,7 +1041,7 @@ router.post('/general/upload', adminMiddleware, async (req: AuthenticatedRequest
     });
 
     const currentSettings: GeneralSettings = currentSetting?.value 
-      ? { ...defaultGeneralSettings, ...JSON.parse(currentSetting.value) }
+      ? mergeGeneralSettings(currentSetting.value)
       : defaultGeneralSettings;
 
     // Update the specific field
