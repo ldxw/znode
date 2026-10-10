@@ -2054,7 +2054,9 @@
     "requireInviteCode": "Kailangan ng invite code",
     "requireInviteCodeDesc": "Ang may invite code lang ang makakapag-signup. Gumawa ng code sa Settings → Invite Codes.",
     "turnstileRegister": "Pagpaparehistro",
-    "turnstileRegisterDesc": "Bagong user sign-up"
+    "turnstileRegisterDesc": "Bagong user sign-up",
+    "turnstileLogin": "Pag-login",
+    "turnstileLoginDesc": "Mga pagsubok mag-login"
   },
   "maintenance": {
     "title": "Under Maintenance",

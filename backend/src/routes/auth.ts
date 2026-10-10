@@ -267,6 +267,12 @@ router.post('/register', async (req: Request, res: Response) => {
 // Login
 router.post('/login', async (req: Request, res: Response) => {
   try {
+    // 人机验证（后台「通用设置 → 安全 → Turnstile」里的「登录」开关）
+    const loginTurnstile = await verifyTurnstileForService('login', req.body?.turnstileToken);
+    if (!loginTurnstile.valid) {
+      return res.status(400).json({ error: loginTurnstile.error || 'Captcha verification failed' });
+    }
+
     const validation = loginSchema.safeParse(req.body);
     if (!validation.success) {
       return res.status(400).json({ 

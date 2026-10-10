@@ -4,6 +4,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002';
 
 export interface TurnstileServices {
   emailVerify: boolean;
+  login: boolean;
   register: boolean;
   createHosting: boolean;
   hostingSettings: boolean;
@@ -48,6 +49,7 @@ export function useTurnstileConfig() {
 function getDefaultServices(): TurnstileServices {
   return {
     emailVerify: true,
+    login: true,
     register: true,
     createHosting: false,
     hostingSettings: false,

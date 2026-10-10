@@ -84,7 +84,7 @@ class AuthService {
     return response;
   }
 
-  async login(data: { email: string; password: string }): Promise<AuthResponse> {
+  async login(data: { email: string; password: string; turnstileToken?: string }): Promise<AuthResponse> {
     const response = await this.request<AuthResponse>('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify(data),

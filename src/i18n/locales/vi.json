@@ -2054,7 +2054,9 @@
     "requireInviteCode": "Yêu cầu mã mời",
     "requireInviteCodeDesc": "Chỉ người có mã mời mới đăng ký được. Tạo mã ở Cài đặt → Mã mời.",
     "turnstileRegister": "Đăng ký",
-    "turnstileRegisterDesc": "Đăng ký người dùng mới"
+    "turnstileRegisterDesc": "Đăng ký người dùng mới",
+    "turnstileLogin": "Đăng nhập",
+    "turnstileLoginDesc": "Lượt đăng nhập"
   },
   "maintenance": {
     "title": "Đang bảo trì",

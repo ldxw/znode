@@ -836,6 +836,7 @@ interface GeneralSettings {
   subdomainBlockedPrefixes?: string;
   turnstileServices?: {
     emailVerify: boolean;
+    login: boolean;
     register: boolean;
     createHosting: boolean;
     hostingSettings: boolean;
@@ -864,6 +865,7 @@ const defaultGeneralSettings: GeneralSettings = {
   subdomainBlockedPrefixes: '',
   turnstileServices: {
     emailVerify: true,
+    login: true,
     register: true,
     createHosting: false,
     hostingSettings: false,
@@ -920,6 +922,7 @@ router.get('/general/public', async (req, res: Response) => {
       imgbbApiKey: settings.imgbbApiKey || '',
       turnstileServices: settings.turnstileServices || {
         emailVerify: true,
+        login: true,
         register: true,
         createHosting: false,
         hostingSettings: false,

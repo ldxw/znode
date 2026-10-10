@@ -2054,7 +2054,9 @@
     "requireInviteCode": "注册需要邀请码",
     "requireInviteCodeDesc": "只有持有邀请码的人才能注册。邀请码在「设置 → 邀请码」里生成。",
     "turnstileRegister": "用户注册",
-    "turnstileRegisterDesc": "新用户注册"
+    "turnstileRegisterDesc": "新用户注册",
+    "turnstileLogin": "用户登录",
+    "turnstileLoginDesc": "用户登录尝试"
   },
   "maintenance": {
     "title": "正在维护中",

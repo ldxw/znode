@@ -2054,7 +2054,9 @@
     "requireInviteCode": "Require an invitation code",
     "requireInviteCodeDesc": "Only people who hold an invitation code can sign up. Create them under Settings → Invite Codes.",
     "turnstileRegister": "Registration",
-    "turnstileRegisterDesc": "New user sign-ups"
+    "turnstileRegisterDesc": "New user sign-ups",
+    "turnstileLogin": "Login",
+    "turnstileLoginDesc": "User sign-in attempts"
   },
   "maintenance": {
     "title": "Under Maintenance",

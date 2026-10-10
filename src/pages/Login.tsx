@@ -9,6 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useSite, usePageTitle } from "@/contexts/SiteContext";
 import authService, { OAuthStatus } from "@/services/auth";
+import { TurnstileWidget } from "@/components/TurnstileWidget";
+import { useTurnstileConfig, isTurnstileRequired } from "@/hooks/useTurnstile";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002';
 
@@ -29,8 +31,18 @@ const Login = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [oauthStatus, setOauthStatus] = useState<OAuthStatus | null>(null);
   const [totalUsers, setTotalUsers] = useState<number | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileKey, setTurnstileKey] = useState(0);
   
   const { refreshUser } = useAuth();
+
+  // 登录页的人机验证（后台「通用设置 → 安全 → Turnstile → 登录」）
+  const { data: turnstileConfig } = useTurnstileConfig();
+  const requiresTurnstile = isTurnstileRequired(turnstileConfig, 'login');
+  const resetTurnstile = () => {
+    setTurnstileToken("");
+    setTurnstileKey((k) => k + 1);
+  };
   const { toast } = useToast();
   const { t } = useLanguage();
   const { settings } = useSite();
@@ -105,7 +117,7 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      const response = await authService.login({ email, password });
+      const response = await authService.login({ email, password, turnstileToken: turnstileToken || undefined });
       
       // Check if 2FA is required - redirect to 2FA page
       if (response.requires2FA) {
@@ -145,6 +157,8 @@ const Login = () => {
         navigate(from, { replace: true });
       }
     } catch (error: any) {
+      // Turnstile 的 token 是一次性的，失败后必须重置，否则重试会一直报验证失败
+      if (requiresTurnstile) resetTurnstile();
       toast({
         title: t.auth.loginFailed,
         description: error.error || t.auth.invalidCredentials,
@@ -344,7 +358,23 @@ const Login = () => {
               </Label>
             </div>
 
-            <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
+            {requiresTurnstile && turnstileConfig?.siteKey && (
+              <div className="pb-2">
+                <TurnstileWidget
+                  key={`login-${turnstileKey}`}
+                  siteKey={turnstileConfig.siteKey}
+                  onVerify={setTurnstileToken}
+                  onExpire={() => setTurnstileToken("")}
+                />
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full"
+              disabled={isLoading || (requiresTurnstile && !turnstileToken)}
+            >
               {isLoading ? (
                 <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
               ) : (
