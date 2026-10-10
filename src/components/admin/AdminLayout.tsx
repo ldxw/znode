@@ -30,6 +30,7 @@ import {
   Sun,
   Ticket,
   UserCog,
+  UserPlus,
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -92,6 +93,7 @@ const AdminLayout = ({ children, defaultCollapsed = false }: AdminLayoutProps) =
     plans: t.admin?.plans?.title || "Hosting Plans",
     levels: t.admin?.levels?.title || "User Levels",
     activationCodes: t.admin?.activationCodes?.title || "Activation Codes",
+    inviteCodes: t.admin?.inviteCodes?.title || "Invite Codes",
     generalSettings: t.admin?.generalSettings || "General Settings",
     emailSmtp: t.admin?.emailSmtp || "Email & SMTP",
     notifications: t.admin?.notifications || "Notifications",
@@ -185,6 +187,9 @@ const AdminLayout = ({ children, defaultCollapsed = false }: AdminLayoutProps) =
         { title: adminT.hostingApi, href: "/admin/settings/mofh", icon: Server },
         { title: adminT.allowedDomains, href: "/admin/settings/domains", icon: Globe },
         { title: adminT.plans, href: "/admin/settings/plans", icon: Package },
+        { title: adminT.levels, href: "/admin/settings/levels", icon: Award },
+        { title: adminT.activationCodes, href: "/admin/settings/activation-codes", icon: KeyRound },
+        { title: adminT.inviteCodes, href: "/admin/settings/invite-codes", icon: UserPlus },
         { title: adminT.websiteBuilder, href: "/admin/settings/builder", icon: Palette },
         { title: adminT.smtp, href: "/admin/settings/smtp", icon: Mail },
         { title: adminT.sslSettings, href: "/admin/settings/ssl", icon: Shield },

@@ -26,6 +26,7 @@ function serializeCode(code: any) {
   return {
     id: code.id,
     code: code.code,
+    purpose: code.purpose,
     levelId: code.levelId,
     levelName: code.level?.name || '',
     maxUses: code.maxUses ?? null,
@@ -41,10 +42,13 @@ function serializeCode(code: any) {
 }
 
 // ==================== 列表 ====================
-router.get('/admin', adminMiddleware, async (_req: AuthenticatedRequest, res: Response) => {
+router.get('/admin', adminMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
+    // 默认只看升级码；邀请码页传 ?purpose=register
+    const purpose = String(req.query.purpose || 'activate').toLowerCase() === 'register' ? 'REGISTER' : 'ACTIVATE';
     const [codes, levels] = await Promise.all([
       prisma.activationCode.findMany({
+        where: { purpose },
         include: { level: { select: { name: true } }, _count: { select: { uses: true } } },
         orderBy: { createdAt: 'desc' },
       }),
@@ -66,6 +70,9 @@ router.post('/', adminMiddleware, async (req: AuthenticatedRequest, res: Respons
     const levelId = String(req.body?.levelId || '').trim();
     if (!levelId) return res.status(400).json({ error: 'Level is required' });
 
+    // 用途：升级码（默认）或注册邀请码
+    const purpose = String(req.body?.purpose || 'activate').toLowerCase() === 'register' ? 'REGISTER' as const : 'ACTIVATE' as const;
+
     const level = await prisma.userLevel.findUnique({ where: { id: levelId } });
     if (!level) return res.status(400).json({ error: 'Level not found' });
 
@@ -86,7 +93,7 @@ router.post('/', adminMiddleware, async (req: AuthenticatedRequest, res: Respons
       const exists = await prisma.activationCode.findUnique({ where: { code: custom } });
       if (exists) return res.status(400).json({ error: 'This code already exists' });
       const created = await prisma.activationCode.create({
-        data: { code: custom, levelId, maxUses, expiresAt, note, isActive },
+        data: { code: custom, purpose, levelId, maxUses, expiresAt, note, isActive },
         include: { level: { select: { name: true } } },
       });
       return res.json({ message: 'Code created', codes: [serializeCode(created)] });
@@ -106,7 +113,7 @@ router.post('/', adminMiddleware, async (req: AuthenticatedRequest, res: Respons
     for (const e of existing) wanted.delete(e.code);
 
     await prisma.activationCode.createMany({
-      data: [...wanted].map((code) => ({ code, levelId, maxUses, expiresAt, note, isActive })),
+      data: [...wanted].map((code) => ({ code, purpose, levelId, maxUses, expiresAt, note, isActive })),
     });
 
     const created = await prisma.activationCode.findMany({

@@ -190,11 +190,21 @@ model UserLevel {
   @@map("user_levels")
 }
 
+/// 激活码用途
+enum CodePurpose {
+  /// 升级码：用户在「我的等级」页兑换，升级到该等级
+  ACTIVATE
+  /// 邀请码：注册时使用，注册后直接获得该等级
+  REGISTER
+}
+
 /// 激活码：一张码绑定一个等级，可限制使用次数与有效期
 model ActivationCode {
   id        String    @id @default(cuid())
   code      String    @unique
-  /// 兑换后升到的等级
+  /// 该码的用途（升级 / 注册邀请）
+  purpose   CodePurpose @default(ACTIVATE)
+  /// 兑换后升到的等级（注册邀请码则为注册后的初始等级）
   levelId   String
   level     UserLevel @relation(fields: [levelId], references: [id], onDelete: Cascade)
   /// 最多可使用次数（NULL = 不限）

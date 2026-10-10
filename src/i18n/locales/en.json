@@ -706,7 +706,12 @@
     "resetEmailSent": "If an account exists for that email, we've sent a password reset link — please check your inbox.",
     "resetPassword": "Reset Password",
     "resetPasswordDesc": "Set a new password for the following account:",
-    "sendResetLink": "Send Reset Link"
+    "sendResetLink": "Send Reset Link",
+    "registrationClosed": "Registration is closed",
+    "registrationClosedDesc": "New sign-ups are currently disabled. Please check back later.",
+    "inviteCode": "Invitation code",
+    "inviteCodePlaceholder": "XXXX-XXXX-XXXX",
+    "inviteCodeHint": "Sign-up is invite-only right now."
   },
   "messages": {
     "error": "Error",
@@ -1436,6 +1441,15 @@
       "enable": "Enable",
       "disable": "Disable",
       "error": "Error"
+    },
+    "inviteCodes": {
+      "title": "Invite Codes",
+      "subtitle": "Only people holding one of these codes can sign up. Each code can also grant a starting level.",
+      "addCode": "New Invite Code",
+      "dialogDesc": "Pick the level new users get, then generate one or many invite codes.",
+      "howItWorks": "How it works",
+      "howItWorksDesc": "Enable “Require an invitation code” in Settings → General → Security, then hand these out. Users enter the code on the register page.",
+      "noCodes": "No invite codes yet"
     }
   },
   "landing": {
@@ -2032,7 +2046,13 @@
     "seoEnableSitemapDesc": "Generate /sitemap.xml automatically with all pages and KB articles",
     "seoSitemapCustomUrls": "Custom URLs",
     "seoSitemapCustomUrlsHint": "One URL per line. Format: /path|priority|changefreq. Static pages and KB articles are included automatically.",
-    "seoViewSitemap": "View live sitemap.xml"
+    "seoViewSitemap": "View live sitemap.xml",
+    "registrationSettings": "Registration",
+    "registrationSettingsDesc": "Control whether new users can sign up, and whether an invitation code is required.",
+    "allowRegistration": "Allow registration",
+    "allowRegistrationDesc": "Turn this off to close signups completely. Both the register page and the API stop accepting new accounts.",
+    "requireInviteCode": "Require an invitation code",
+    "requireInviteCodeDesc": "Only people who hold an invitation code can sign up. Create them under Settings → Invite Codes."
   },
   "maintenance": {
     "title": "Under Maintenance",

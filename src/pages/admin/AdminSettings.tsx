@@ -28,6 +28,7 @@ const AdminSettings = () => {
       <Route path="/plans" element={<HostingPlansSettings />} />
       <Route path="/levels" element={<UserLevelsSettings />} />
       <Route path="/activation-codes" element={<ActivationCodesSettings />} />
+      <Route path="/invite-codes" element={<ActivationCodesSettings purpose="register" />} />
       <Route path="/general" element={<ComingSoon title={t.admin.generalSettings} />} />
       <Route path="/email" element={<Navigate to="/admin/email" replace />} />
       <Route path="/notifications" element={<ComingSoon title={t.admin.notifications} />} />

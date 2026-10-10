@@ -26,6 +26,10 @@ interface SiteSettings {
   siteLogo: string;
   siteFavicon: string;
   emailVerificationEnabled: boolean;
+  /** 是否开放注册 */
+  registrationEnabled: boolean;
+  /** 注册是否需要邀请码 */
+  requireInviteCode: boolean;
   maintenanceMode: boolean;
   maintenanceMessage: string;
   turnstileEnabled: boolean;
@@ -48,6 +52,8 @@ const defaultSettings: SiteSettings = {
   siteLogo: '',
   siteFavicon: '',
   emailVerificationEnabled: true,
+  registrationEnabled: true,
+  requireInviteCode: false,
   maintenanceMode: false,
   maintenanceMessage: '',
   turnstileEnabled: false,

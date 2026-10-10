@@ -4,6 +4,8 @@ export const registerSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   name: z.string().min(2, 'Name must be at least 2 characters').optional(),
+  /** 邀请码（后台开启「注册需要邀请码」后必填） */
+  inviteCode: z.string().optional(),
 });
 
 export const loginSchema = z.object({

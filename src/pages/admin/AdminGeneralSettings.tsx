@@ -10,30 +10,31 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import AdminLayout from "@/components/admin/AdminLayout";
-import { 
-  Settings, 
-  Save, 
-  Upload,
-  Image,
-  Globe,
-  Shield,
-  Mail,
+import {
   AlertTriangle,
-  RefreshCw,
-  X,
-  Eye,
-  EyeOff,
-  CheckCircle2,
-  Search,
-  FileText,
   Bot,
-  Map,
-  Languages,
-  Plus,
+  CheckCircle2,
   Code,
   ExternalLink,
+  Eye,
+  EyeOff,
+  FileText,
+  Globe,
+  Image,
   Info,
+  Languages,
+  Mail,
+  Map,
+  Plus,
   Puzzle,
+  RefreshCw,
+  Save,
+  Search,
+  Settings,
+  Shield,
+  Upload,
+  UserPlus,
+  X,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { usePageTitle } from "@/contexts/SiteContext";
@@ -58,6 +59,8 @@ interface GeneralSettings {
   siteLogo: string;
   siteFavicon: string;
   emailVerificationEnabled: boolean;
+  registrationEnabled: boolean;
+  requireInviteCode: boolean;
   maintenanceMode: boolean;
   maintenanceMessage: string;
   maintenanceAllowedIPs: string;
@@ -129,6 +132,8 @@ const AdminGeneralSettings = () => {
     siteLogo: '',
     siteFavicon: '',
     emailVerificationEnabled: true,
+    registrationEnabled: true,
+    requireInviteCode: false,
     maintenanceMode: false,
     maintenanceMessage: '',
     maintenanceAllowedIPs: '',
@@ -908,6 +913,53 @@ const AdminGeneralSettings = () => {
 
           {/* Tab: Security */}
           <TabsContent value="security" className="mt-6 space-y-6">
+            {/* Registration */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <UserPlus className="w-5 h-5" />
+                  {t.settings?.registrationSettings || 'Registration'}
+                </CardTitle>
+                <CardDescription>
+                  {t.settings?.registrationSettingsDesc ||
+                    'Control whether new users can sign up, and whether an invitation code is required.'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
+                  <div className="space-y-1">
+                    <p className="font-medium">{t.settings?.allowRegistration || 'Allow registration'}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {t.settings?.allowRegistrationDesc ||
+                        'Turn this off to close signups completely. Both the register page and the API stop accepting new accounts.'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.registrationEnabled}
+                    onCheckedChange={(checked) =>
+                      setSettings((prev) => ({ ...prev, registrationEnabled: checked }))
+                    }
+                  />
+                </div>
+                <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
+                  <div className="space-y-1">
+                    <p className="font-medium">{t.settings?.requireInviteCode || 'Require an invitation code'}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {t.settings?.requireInviteCodeDesc ||
+                        'Only people who hold an invitation code can sign up. Create them under Settings → Invite Codes.'}
+                    </p>
+                  </div>
+                  <Switch
+                    disabled={!settings.registrationEnabled}
+                    checked={settings.requireInviteCode}
+                    onCheckedChange={(checked) =>
+                      setSettings((prev) => ({ ...prev, requireInviteCode: checked }))
+                    }
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Email Verification */}
             <Card>
               <CardHeader>

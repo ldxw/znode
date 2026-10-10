@@ -706,7 +706,12 @@
     "resetPasswordDesc": "为以下账号设置新密码：",
     "sendResetLink": "发送重置链接",
     "useAuthenticatorApp": "改用验证器 App",
-    "useRecoveryCode": "使用恢复码"
+    "useRecoveryCode": "使用恢复码",
+    "registrationClosed": "注册已关闭",
+    "registrationClosedDesc": "当前暂不开放新用户注册，请稍后再试。",
+    "inviteCode": "邀请码",
+    "inviteCodePlaceholder": "XXXX-XXXX-XXXX",
+    "inviteCodeHint": "当前仅限持邀请码的用户注册。"
   },
   "messages": {
     "error": "错误",
@@ -1436,6 +1441,15 @@
       "enable": "启用",
       "disable": "停用",
       "error": "错误"
+    },
+    "inviteCodes": {
+      "title": "邀请码",
+      "subtitle": "只有持有邀请码的人才能注册。邀请码还能指定注册后的初始等级。",
+      "addCode": "新建邀请码",
+      "dialogDesc": "选择新用户注册后获得的等级，然后生成一个或多个邀请码。",
+      "howItWorks": "工作原理",
+      "howItWorksDesc": "先在「设置 → 通用 → 安全」里打开「注册需要邀请码」，再把码发出去。用户在注册页填写。",
+      "noCodes": "还没有邀请码"
     }
   },
   "landing": {
@@ -2032,7 +2046,13 @@
     "seoEnableSitemapDesc": "自动生成包含所有页面和知识库文章的 /sitemap.xml",
     "seoSitemapCustomUrls": "自定义 URL",
     "seoSitemapCustomUrlsHint": "每行一个 URL。格式：/路径|优先级|更新频率。静态页面和知识库文章会自动包含。",
-    "seoViewSitemap": "查看实时 sitemap.xml"
+    "seoViewSitemap": "查看实时 sitemap.xml",
+    "registrationSettings": "注册设置",
+    "registrationSettingsDesc": "控制是否允许新用户注册，以及注册是否需要邀请码。",
+    "allowRegistration": "允许注册",
+    "allowRegistrationDesc": "关掉后彻底关闭注册：注册页和接口都不再接受新账号。",
+    "requireInviteCode": "注册需要邀请码",
+    "requireInviteCodeDesc": "只有持有邀请码的人才能注册。邀请码在「设置 → 邀请码」里生成。"
   },
   "maintenance": {
     "title": "正在维护中",

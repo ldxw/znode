@@ -65,6 +65,9 @@ router.post('/redeem', authMiddleware, async (req: AuthenticatedRequest, res: Re
 
     const code = await prisma.activationCode.findUnique({ where: { code: raw } });
     if (!code) return res.status(404).json({ error: 'Invalid activation code' });
+    if (code.purpose !== 'ACTIVATE') {
+      return res.status(400).json({ error: 'This code is not an activation code' });
+    }
     if (!code.isActive) return res.status(400).json({ error: 'This activation code is disabled' });
     if (code.expiresAt && code.expiresAt.getTime() < Date.now()) {
       return res.status(400).json({ error: 'This activation code has expired' });

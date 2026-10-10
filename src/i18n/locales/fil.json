@@ -706,7 +706,12 @@
     "resetEmailSent": "Kung may account para sa email na iyon, nagpadala kami ng link para sa pag-reset ng password — paki-check ang iyong inbox.",
     "resetPassword": "I-reset ang Password",
     "resetPasswordDesc": "Magtakda ng bagong password para sa sumusunod na account:",
-    "sendResetLink": "Ipadala ang Reset Link"
+    "sendResetLink": "Ipadala ang Reset Link",
+    "registrationClosed": "Sarado ang pagpaparehistro",
+    "registrationClosedDesc": "Kasalukuyang hindi bukas ang bagong signup. Subukan muli mamaya.",
+    "inviteCode": "Invite code",
+    "inviteCodePlaceholder": "XXXX-XXXX-XXXX",
+    "inviteCodeHint": "Invite-only ang signup ngayon."
   },
   "messages": {
     "error": "Error",
@@ -1436,6 +1441,15 @@
       "enable": "I-enable",
       "disable": "I-disable",
       "error": "Error"
+    },
+    "inviteCodes": {
+      "title": "Mga Invite Code",
+      "subtitle": "Ang may hawak ng code na ito lang ang makakapag-signup. Maaari ring magbigay ng panimulang level.",
+      "addCode": "Bagong Invite Code",
+      "dialogDesc": "Piliin ang level ng bagong user, pagkatapos ay gumawa ng isa o maraming invite code.",
+      "howItWorks": "Paano ito gumagana",
+      "howItWorksDesc": "I-enable ang “Kailangan ng invite code” sa Settings → General → Security, pagkatapos ay ipamigay ang mga ito. Ilalagay ng user ang code sa register page.",
+      "noCodes": "Wala pang invite code"
     }
   },
   "landing": {
@@ -2032,7 +2046,13 @@
     "seoEnableSitemapDesc": "Awtomatikong gumawa ng /sitemap.xml na may lahat ng pages at KB articles",
     "seoSitemapCustomUrls": "Custom URLs",
     "seoSitemapCustomUrlsHint": "Isang URL kada linya. Format: /path|priority|changefreq. Awtomatikong kasama ang static pages at KB articles.",
-    "seoViewSitemap": "Tingnan ang live sitemap.xml"
+    "seoViewSitemap": "Tingnan ang live sitemap.xml",
+    "registrationSettings": "Pagpaparehistro",
+    "registrationSettingsDesc": "Kontrolin kung puwedeng mag-signup ang mga bagong user, at kung kailangan ng invite code.",
+    "allowRegistration": "Payagan ang pagpaparehistro",
+    "allowRegistrationDesc": "I-off ito para tuluyang isara ang signup. Parehong ang register page at API ay hindi na tatanggap ng bagong account.",
+    "requireInviteCode": "Kailangan ng invite code",
+    "requireInviteCodeDesc": "Ang may invite code lang ang makakapag-signup. Gumawa ng code sa Settings → Invite Codes."
   },
   "maintenance": {
     "title": "Under Maintenance",

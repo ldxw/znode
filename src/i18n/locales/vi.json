@@ -706,7 +706,12 @@
     "resetEmailSent": "Nếu tồn tại tài khoản với email đó, chúng tôi đã gửi liên kết đặt lại mật khẩu — vui lòng kiểm tra hộp thư.",
     "resetPassword": "Đặt lại mật khẩu",
     "resetPasswordDesc": "Đặt mật khẩu mới cho tài khoản sau:",
-    "sendResetLink": "Gửi liên kết đặt lại"
+    "sendResetLink": "Gửi liên kết đặt lại",
+    "registrationClosed": "Đã đóng đăng ký",
+    "registrationClosedDesc": "Hiện không mở đăng ký mới. Vui lòng quay lại sau.",
+    "inviteCode": "Mã mời",
+    "inviteCodePlaceholder": "XXXX-XXXX-XXXX",
+    "inviteCodeHint": "Hiện chỉ người có mã mời mới đăng ký được."
   },
   "messages": {
     "error": "Lỗi",
@@ -1436,6 +1441,15 @@
       "enable": "Bật",
       "disable": "Tắt",
       "error": "Lỗi"
+    },
+    "inviteCodes": {
+      "title": "Mã mời",
+      "subtitle": "Chỉ người có mã này mới đăng ký được. Mỗi mã cũng có thể gán cấp khởi đầu.",
+      "addCode": "Mã mời mới",
+      "dialogDesc": "Chọn cấp cho người dùng mới, rồi sinh một hoặc nhiều mã mời.",
+      "howItWorks": "Cách hoạt động",
+      "howItWorksDesc": "Bật “Yêu cầu mã mời” trong Cài đặt → Chung → Bảo mật, rồi phát mã. Người dùng nhập ở trang đăng ký.",
+      "noCodes": "Chưa có mã mời"
     }
   },
   "landing": {
@@ -2032,7 +2046,13 @@
     "seoEnableSitemapDesc": "Tự động tạo /sitemap.xml với tất cả trang và bài viết KB",
     "seoSitemapCustomUrls": "URL tùy chỉnh",
     "seoSitemapCustomUrlsHint": "Mỗi URL một dòng. Định dạng: /đường-dẫn|ưu-tiên|tần-suất. Trang tĩnh và bài viết KB được bao gồm tự động.",
-    "seoViewSitemap": "Xem sitemap.xml trực tiếp"
+    "seoViewSitemap": "Xem sitemap.xml trực tiếp",
+    "registrationSettings": "Đăng ký",
+    "registrationSettingsDesc": "Kiểm soát việc cho phép đăng ký và có bắt buộc mã mời hay không.",
+    "allowRegistration": "Cho phép đăng ký",
+    "allowRegistrationDesc": "Tắt để đóng hoàn toàn việc đăng ký. Cả trang đăng ký và API đều ngừng nhận tài khoản mới.",
+    "requireInviteCode": "Yêu cầu mã mời",
+    "requireInviteCodeDesc": "Chỉ người có mã mời mới đăng ký được. Tạo mã ở Cài đặt → Mã mời."
   },
   "maintenance": {
     "title": "Đang bảo trì",

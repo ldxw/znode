@@ -819,6 +819,10 @@ interface GeneralSettings {
   siteLogo: string;
   siteFavicon: string;
   emailVerificationEnabled: boolean;
+  /** 是否开放注册（关掉后 /auth/register 一律拒绝） */
+  registrationEnabled?: boolean;
+  /** 注册是否需要邀请码 */
+  requireInviteCode?: boolean;
   maintenanceMode: boolean;
   maintenanceMessage: string;
   maintenanceAllowedIPs: string; // Comma-separated IPs (supports IPv4 and IPv6) that can bypass maintenance
@@ -846,6 +850,8 @@ const defaultGeneralSettings: GeneralSettings = {
   siteLogo: '',
   siteFavicon: '',
   emailVerificationEnabled: true,
+  registrationEnabled: true,
+  requireInviteCode: false,
   maintenanceMode: false,
   maintenanceMessage: 'We are currently performing maintenance. Please check back soon.',
   maintenanceAllowedIPs: '',
@@ -901,6 +907,8 @@ router.get('/general/public', async (req, res: Response) => {
       siteLogo: settings.siteLogo,
       siteFavicon: settings.siteFavicon,
       emailVerificationEnabled: settings.emailVerificationEnabled,
+      registrationEnabled: settings.registrationEnabled !== false,
+      requireInviteCode: settings.requireInviteCode === true,
       subdomainMinLength: settings.subdomainMinLength ?? 3,
       subdomainBlockedPrefixes: settings.subdomainBlockedPrefixes || '',
       maintenanceMode: settings.maintenanceMode,

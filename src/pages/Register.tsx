@@ -1,6 +1,16 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Server, Eye, EyeOff, ArrowRight, Mail, Lock, User, CheckCircle } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle,
+  Eye,
+  EyeOff,
+  Lock,
+  Mail,
+  Server,
+  Ticket,
+  User,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +29,7 @@ const Register = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [oauthStatus, setOauthStatus] = useState<OAuthStatus | null>(null);
+  const [inviteCode, setInviteCode] = useState("");
 
   const { register } = useAuth();
   const { toast } = useToast();
@@ -55,7 +66,7 @@ const Register = () => {
     setIsLoading(true);
     
     try {
-      await register(email, password, name || undefined);
+      await register(email, password, name || undefined, inviteCode.trim() || undefined);
       toast({
         title: t.auth.registerSuccess,
         description: t.auth.welcomeToFreeHost,
@@ -157,7 +168,39 @@ const Register = () => {
             </p>
           </div>
 
+          {!settings.registrationEnabled ? (
+            <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-5 text-sm">
+              <p className="font-medium text-foreground mb-1">
+                {t.auth?.registrationClosed || 'Registration is closed'}
+              </p>
+              <p className="text-muted-foreground">
+                {t.auth?.registrationClosedDesc ||
+                  'New sign-ups are currently disabled. Please check back later.'}
+              </p>
+            </div>
+          ) : (
           <form onSubmit={handleSubmit} className="space-y-5">
+            {settings.requireInviteCode && (
+              <div className="space-y-2">
+                <Label htmlFor="inviteCode">{t.auth?.inviteCode || 'Invitation code'}</Label>
+                <div className="relative">
+                  <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <Input
+                    id="inviteCode"
+                    type="text"
+                    placeholder={t.auth?.inviteCodePlaceholder || 'XXXX-XXXX-XXXX'}
+                    value={inviteCode}
+                    onChange={(e) => setInviteCode(e.target.value)}
+                    className="pl-10 h-12 font-mono"
+                    required
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {t.auth?.inviteCodeHint || 'Sign-up is invite-only right now.'}
+                </p>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="name">{t.auth.fullName}</Label>
               <div className="relative">
@@ -276,6 +319,7 @@ const Register = () => {
               )}
             </Button>
           </form>
+          )}
 
           <div className="mt-6 text-center">
             <p className="text-muted-foreground">

@@ -75,7 +75,7 @@ class AuthService {
     return this.accessToken;
   }
 
-  async register(data: { email: string; password: string; name?: string }): Promise<AuthResponse> {
+  async register(data: { email: string; password: string; name?: string; inviteCode?: string }): Promise<AuthResponse> {
     const response = await this.request<AuthResponse>('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),

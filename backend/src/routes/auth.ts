@@ -35,6 +35,17 @@ async function isEmailVerificationEnabled(): Promise<boolean> {
   }
 }
 
+// Helper function to read the general settings blob
+async function getGeneralSettings(): Promise<any> {
+  try {
+    const setting = await prisma.setting.findUnique({ where: { key: 'general_settings' } });
+    if (setting?.value) return JSON.parse(setting.value);
+    return {};
+  } catch {
+    return {};
+  }
+}
+
 // Helper function to generate 6-digit OTP
 function generateOtp(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -127,7 +138,35 @@ router.post('/register', async (req: Request, res: Response) => {
       });
     }
 
-    const { email, password, name } = validation.data;
+    const { email, password, name, inviteCode } = validation.data;
+
+    // 注册开关（后台「通用设置 → 注册设置」）
+    const general = await getGeneralSettings();
+    if (general.registrationEnabled === false) {
+      return res.status(403).json({ error: 'Registration is currently disabled' });
+    }
+
+    // 邀请码校验（开启「注册需要邀请码」时必填）
+    const inviteRaw = (inviteCode || '').trim();
+    let invite: Awaited<ReturnType<typeof prisma.activationCode.findUnique>> = null;
+    if (general.requireInviteCode === true) {
+      if (!inviteRaw) {
+        return res.status(400).json({ error: 'An invitation code is required' });
+      }
+      invite = await prisma.activationCode.findUnique({ where: { code: inviteRaw } });
+      if (!invite || invite.purpose !== 'REGISTER') {
+        return res.status(400).json({ error: 'Invalid invitation code' });
+      }
+      if (!invite.isActive) {
+        return res.status(400).json({ error: 'This invitation code is disabled' });
+      }
+      if (invite.expiresAt && invite.expiresAt.getTime() < Date.now()) {
+        return res.status(400).json({ error: 'This invitation code has expired' });
+      }
+      if (invite.maxUses != null && invite.usedCount >= invite.maxUses) {
+        return res.status(400).json({ error: 'This invitation code has been fully used' });
+      }
+    }
 
     // Check if user exists
     const existingUser = await prisma.user.findUnique({
@@ -142,21 +181,55 @@ router.post('/register', async (req: Request, res: Response) => {
     const hashedPassword = await bcrypt.hash(password, 12);
 
     // Create user (emailVerified is null by default - not verified)
-    const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        name,
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        avatar: true,
-        emailVerified: true,
-        createdAt: true,
-      },
-    });
+    // 有邀请码时：消费邀请码 + 建用户 + 记录使用，放在同一事务里，避免码被白烧
+    let user;
+    try {
+      user = await prisma.$transaction(async (tx) => {
+        if (invite) {
+          const consumed = await tx.activationCode.updateMany({
+            where: {
+              id: invite.id,
+              isActive: true,
+              purpose: 'REGISTER',
+              ...(invite.maxUses != null ? { usedCount: { lt: invite.maxUses } } : {}),
+            },
+            data: { usedCount: { increment: 1 } },
+          });
+          if (consumed.count === 0) throw new Error('INVITE_USED_UP');
+        }
+
+        const created = await tx.user.create({
+          data: {
+            email,
+            password: hashedPassword,
+            name,
+            // 邀请码绑定等级 → 注册即为该等级
+            levelId: invite?.levelId || null,
+          },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            avatar: true,
+            emailVerified: true,
+            createdAt: true,
+          },
+        });
+
+        if (invite) {
+          await tx.activationCodeUse.create({
+            data: { codeId: invite.id, userId: created.id, userEmail: created.email },
+          });
+        }
+
+        return created;
+      });
+    } catch (e: any) {
+      if (e?.message === 'INVITE_USED_UP') {
+        return res.status(400).json({ error: 'This invitation code has been fully used' });
+      }
+      throw e;
+    }
 
     // Send verification email
     try {

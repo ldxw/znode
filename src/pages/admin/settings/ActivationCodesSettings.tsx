@@ -33,9 +33,15 @@ import { Check, Copy, KeyRound, Loader2, Plus, Power, Trash2 } from "lucide-reac
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002';
 
+interface Props {
+  /** activate = 升级激活码；register = 注册邀请码 */
+  purpose?: "activate" | "register";
+}
+
 interface Code {
   id: string;
   code: string;
+  purpose: string;
   levelId: string;
   levelName: string;
   maxUses: number | null;
@@ -67,10 +73,14 @@ const emptyForm = () => ({
 });
 type CodeForm = ReturnType<typeof emptyForm>;
 
-const ActivationCodesSettings = () => {
+const ActivationCodesSettings = ({ purpose = "activate" }: Props) => {
+  const isInvite = purpose === "register";
   const { toast } = useToast();
   const { t } = useLanguage();
-  const ct = (t as any)?.admin?.activationCodes || {};
+  // 邀请码页复用同一套 UI，只有标题类文案不同
+  const base = (t as any)?.admin?.activationCodes || {};
+  const overrides = isInvite ? (t as any)?.admin?.inviteCodes || {} : {};
+  const ct = { ...base, ...overrides };
   const queryClient = useQueryClient();
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -84,9 +94,9 @@ const ActivationCodesSettings = () => {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["admin-activation-codes"],
+    queryKey: ["admin-activation-codes", purpose],
     queryFn: async () => {
-      const r = await fetch(`${API_URL}/api/activation-codes/admin`, { headers: authHeaders() });
+      const r = await fetch(`${API_URL}/api/activation-codes/admin?purpose=${purpose}`, { headers: authHeaders() });
       if (!r.ok) throw new Error("Failed to load codes");
       return r.json() as Promise<{ codes: Code[]; levels: LevelOption[] }>;
     },
@@ -104,11 +114,13 @@ const ActivationCodesSettings = () => {
     },
   });
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["admin-activation-codes"] });
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: ["admin-activation-codes", purpose] });
 
   const createMutation = useMutation({
     mutationFn: async (f: CodeForm) => {
       const payload = {
+        purpose,
         levelId: f.levelId,
         code: f.code.trim() || undefined,
         count: Number(f.count) || 1,
