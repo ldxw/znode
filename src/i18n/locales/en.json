@@ -535,7 +535,9 @@
     "disk": "Disk",
     "bandwidth": "Bandwidth",
     "domains": "Domains",
-    "databases": "Databases"
+    "databases": "Databases",
+    "plansCount": "plans",
+    "autoAccount": "Auto-assigned"
   },
   "support": {
     "title": "Support",

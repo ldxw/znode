@@ -535,7 +535,9 @@
     "disk": "Disk",
     "bandwidth": "Bandwidth",
     "domains": "Mga domain",
-    "databases": "Mga database"
+    "databases": "Mga database",
+    "plansCount": "plan",
+    "autoAccount": "Awtomatikong itinalaga"
   },
   "support": {
     "title": "Support",

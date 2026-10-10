@@ -535,7 +535,9 @@
     "disk": "Dung lượng",
     "bandwidth": "Băng thông",
     "domains": "Tên miền",
-    "databases": "CSDL"
+    "databases": "CSDL",
+    "plansCount": "gói",
+    "autoAccount": "Tự động gán"
   },
   "support": {
     "title": "Hỗ trợ",

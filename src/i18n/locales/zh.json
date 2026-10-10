@@ -535,7 +535,9 @@
     "disk": "空间",
     "bandwidth": "流量",
     "domains": "域名",
-    "databases": "数据库"
+    "databases": "数据库",
+    "plansCount": "个套餐",
+    "autoAccount": "自动分配"
   },
   "support": {
     "title": "支持",

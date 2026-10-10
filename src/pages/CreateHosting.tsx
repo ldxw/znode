@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   Server,
   Info,
+  Package,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -430,6 +431,72 @@ const CreateHosting = () => {
     );
   }
 
+  // 按「提供方账号」分组：多分销商时前台分组展示，只有一个账号时平铺
+  const planGroups = (() => {
+    const map = new Map<string, { key: string; name: string; plans: HostingPlanOption[] }>();
+    for (const p of plans) {
+      const key = p.mofhAccountId || "__auto__";
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          name: p.mofhAccountName || (t.createHosting?.autoAccount || "Auto-assigned"),
+          plans: [],
+        });
+      }
+      map.get(key)!.plans.push(p);
+    }
+    return [...map.values()];
+  })();
+
+  const renderPlanCard = (p: HostingPlanOption) => {
+    const active = selectedPlanId === p.id;
+    const chips: string[] = [];
+    if (p.specs?.disk) chips.push(`${t.createHosting?.disk || "Disk"}: ${p.specs.disk}`);
+    if (p.specs?.bandwidth) chips.push(`${t.createHosting?.bandwidth || "Bandwidth"}: ${p.specs.bandwidth}`);
+    if (p.specs?.domains != null) chips.push(`${t.createHosting?.domains || "Domains"}: ${p.specs.domains}`);
+    if (p.specs?.databases != null) chips.push(`${t.createHosting?.databases || "Databases"}: ${p.specs.databases}`);
+    return (
+      <button
+        key={p.id}
+        type="button"
+        onClick={() => setSelectedPlanId(p.id)}
+        className={`text-left rounded-xl border p-4 transition ${
+          active ? "border-primary bg-primary/5 ring-1 ring-primary/30" : "border-border hover:border-primary/40"
+        }`}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-medium">{p.name}</span>
+          {p.isFeatured && (
+            <Badge className="text-xs">{t.createHosting?.recommended || "Recommended"}</Badge>
+          )}
+        </div>
+        {p.description && (
+          <p className="text-sm text-muted-foreground mt-1">{p.description}</p>
+        )}
+        {chips.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {chips.map((c, i) => (
+              <span key={i} className="text-xs rounded-md bg-muted px-2 py-0.5">{c}</span>
+            ))}
+          </div>
+        )}
+        {p.features.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {p.features.slice(0, 4).map((f, i) => (
+              <Badge key={i} variant="outline" className="text-xs font-normal">{f}</Badge>
+            ))}
+          </div>
+        )}
+        {p.remaining != null && (
+          <p className="text-xs text-muted-foreground mt-2">
+            {t.createHosting?.remaining || "Remaining"}: {p.remaining}
+          </p>
+        )}
+      </button>
+    );
+  };
+
+
   return (
     <DashboardLayout>
       <div className="max-w-2xl mx-auto space-y-6">
@@ -692,7 +759,7 @@ const CreateHosting = () => {
             </h2>
 
             <form onSubmit={handleCreate} className="space-y-6">
-              {/* 建站套餐选择 */}
+              {/* 建站套餐选择（按提供方账号分组） */}
               {plans.length > 0 && (
                 <div className="space-y-3">
                   <div>
@@ -701,59 +768,23 @@ const CreateHosting = () => {
                       {t.createHosting?.choosePlanHint || "Each plan is provided by a specific reseller account."}
                     </p>
                   </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {plans.map((p) => {
-                      const active = selectedPlanId === p.id;
-                      const chips: string[] = [];
-                      if (p.specs?.disk) chips.push(`${t.createHosting?.disk || "Disk"}: ${p.specs.disk}`);
-                      if (p.specs?.bandwidth) chips.push(`${t.createHosting?.bandwidth || "Bandwidth"}: ${p.specs.bandwidth}`);
-                      if (p.specs?.domains != null) chips.push(`${t.createHosting?.domains || "Domains"}: ${p.specs.domains}`);
-                      if (p.specs?.databases != null) chips.push(`${t.createHosting?.databases || "Databases"}: ${p.specs.databases}`);
-                      return (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => setSelectedPlanId(p.id)}
-                          className={`text-left rounded-xl border p-4 transition ${
-                            active ? "border-primary bg-primary/5 ring-1 ring-primary/30" : "border-border hover:border-primary/40"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="font-medium">{p.name}</span>
-                            {p.isFeatured && (
-                              <Badge className="text-xs">{t.createHosting?.recommended || "Recommended"}</Badge>
-                            )}
+                  <div className="space-y-5">
+                    {planGroups.map((group) => (
+                      <div key={group.key} className="space-y-2">
+                        {planGroups.length > 1 && (
+                          <div className="flex items-center gap-2">
+                            <Server className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-sm font-medium">{group.name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {group.plans.length} {t.createHosting?.plansCount || "plans"}
+                            </span>
                           </div>
-                          {p.mofhAccountName && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {t.createHosting?.providedBy || "Provided by"}: {p.mofhAccountName}
-                            </p>
-                          )}
-                          {p.description && (
-                            <p className="text-sm text-muted-foreground mt-1">{p.description}</p>
-                          )}
-                          {chips.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-2">
-                              {chips.map((c, i) => (
-                                <span key={i} className="text-xs rounded-md bg-muted px-2 py-0.5">{c}</span>
-                              ))}
-                            </div>
-                          )}
-                          {p.features.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-2">
-                              {p.features.slice(0, 4).map((f, i) => (
-                                <Badge key={i} variant="outline" className="text-xs font-normal">{f}</Badge>
-                              ))}
-                            </div>
-                          )}
-                          {p.remaining != null && (
-                            <p className="text-xs text-muted-foreground mt-2">
-                              {t.createHosting?.remaining || "Remaining"}: {p.remaining}
-                            </p>
-                          )}
-                        </button>
-                      );
-                    })}
+                        )}
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {group.plans.map(renderPlanCard)}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
