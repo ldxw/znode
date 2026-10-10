@@ -12,6 +12,8 @@ import {
   pickAccount,
   packageForAccount,
   cpanelUrlForAccount,
+  allNameservers,
+  accountByNameservers,
   mofhJsonRequest,
   mofhXmlRequest,
   type MOFHAccount,
@@ -29,19 +31,12 @@ const DEFAULT_NAMESERVERS = [
   'ns5.byet.org',
 ];
 
-// Get allowed nameservers (custom or default BYET)
+// 允许的域名服务器 = 全局配置 + 所有启用账号的并集（不同分销商各有一套）；
+// 一个都没配就退回 BYET 默认。
 async function getAllowedNameservers(): Promise<string[]> {
   const config = await loadMOFHConfig();
-
-  if (config.customNameservers && config.customNameservers.trim()) {
-    // Parse custom nameservers (comma-separated)
-    return config.customNameservers
-      .split(',')
-      .map((ns: string) => ns.trim().toLowerCase())
-      .filter((ns: string) => ns.length > 0);
-  }
-
-  return DEFAULT_NAMESERVERS;
+  const all = allNameservers(config);
+  return all.length > 0 ? all : DEFAULT_NAMESERVERS;
 }
 
 /**
@@ -570,7 +565,9 @@ router.post('/create', authMiddleware, async (req: AuthenticatedRequest, res: Re
     
     let fullDomain: string;
     let accountUsername: string;
-    
+    // 自定义域名解析出来的 NS —— 用来决定该建在哪个分销账号下
+    let domainNameservers: string[] = [];
+
     if (isCustomDomain) {
       // Custom domain mode - use the customDomain directly
       fullDomain = customDomain.toLowerCase().trim();
@@ -590,6 +587,7 @@ router.post('/create', authMiddleware, async (req: AuthenticatedRequest, res: Re
           requiredNameservers: nsCheck.requiredNS,
         });
       }
+      domainNameservers = nsCheck.currentNS;
       
       // Generate a username from domain (max 8 chars total for MOFH)
       // Take first 4 chars of domain + 4 random chars = 8 chars
@@ -663,8 +661,13 @@ router.post('/create', authMiddleware, async (req: AuthenticatedRequest, res: Re
     // Generate random password for the hosting account
     const hostingPassword = generatePassword(12);
     
-    // 按策略挑一个 MOFH 账号来建站（多账号支持：least-loaded / round-robin）
-    const mofhAccount = await pickAccount(mofhConfig);
+    // 挑一个 MOFH 账号来建站（多账号支持）：
+    // 域名的 NS 已经指向某家分销商 → 必须建在那家；否则按策略（least-loaded / round-robin）
+    const nsAccount = accountByNameservers(mofhConfig, domainNameservers);
+    if (nsAccount) {
+      console.log(`[MOFH Create Account] 域名 NS 指向账号「${nsAccount.name}」，优先使用该账号`);
+    }
+    const mofhAccount = await pickAccount(mofhConfig, nsAccount?.id);
     if (!mofhAccount) {
       return res.status(500).json({ error: 'No MOFH account available' });
     }

@@ -422,6 +422,7 @@ router.put('/mofh', adminMiddleware, async (req: AuthenticatedRequest, res: Resp
         enabled: a.enabled !== false,
         defaultPackage: a.defaultPackage || undefined,
         cpanelUrl: a.cpanelUrl || undefined,
+        customNameservers: a.customNameservers || undefined,
         note: a.note || undefined,
       });
     }

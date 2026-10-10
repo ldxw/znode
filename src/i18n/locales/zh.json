@@ -1148,7 +1148,10 @@
       "noAccountsHint": "至少添加一个 MOFH 分销账号才能开始创建托管",
       "testAccount": "测试",
       "defaults": "全局默认值",
-      "defaultsDesc": "账号没有单独覆盖时使用这里的值"
+      "defaultsDesc": "账号没有单独覆盖时使用这里的值",
+      "overrideNameservers": "覆盖域名服务器",
+      "overrideNameserversHint": "该分销商要求用户把域名指向的域名服务器",
+      "accountPanelSetup": "这几项要在此账号对应的 MOFH 面板里单独配置"
     },
     "domains": {
       "title": "域名管理",

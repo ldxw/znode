@@ -23,6 +23,8 @@ export interface MOFHAccount {
   defaultPackage?: string;
   /** 该账号对应的用户面板地址（不同分销商也不同） */
   cpanelUrl?: string;
+  /** 该账号要求用户使用的域名服务器（不同分销商各有一套） */
+  customNameservers?: string;
   note?: string;
 }
 
@@ -87,6 +89,7 @@ export function normalizeConfig(raw: MOFHConfigFile | null | undefined): Resolve
       enabled: a.enabled !== false,
       defaultPackage: a.defaultPackage || undefined,
       cpanelUrl: a.cpanelUrl || undefined,
+      customNameservers: a.customNameservers || undefined,
       note: a.note || undefined,
     }));
 
@@ -135,9 +138,19 @@ export function getAccount(cfg: ResolvedMOFHConfig, id?: string | null): MOFHAcc
  *   视为由第一个账号创建，一并计入它的负载）
  * - round-robin：用「已建站总数 % 启用账号数」轮转，无需额外存状态
  */
-export async function pickAccount(cfg: ResolvedMOFHConfig): Promise<MOFHAccount | null> {
+export async function pickAccount(
+  cfg: ResolvedMOFHConfig,
+  preferredId?: string | null,
+): Promise<MOFHAccount | null> {
   const list = cfg.enabledAccounts;
   if (list.length === 0) return null;
+
+  // 指定了账号就用它（例如域名的 NS 已经指向某个分销商，必须建在那家）
+  if (preferredId) {
+    const preferred = list.find((a) => a.id === preferredId);
+    if (preferred) return preferred;
+  }
+
   if (list.length === 1) return list[0];
 
   const grouped = await prisma.hosting.groupBy({
@@ -206,6 +219,53 @@ export async function cpanelUrlForVpUsername(vpUsername?: string | null): Promis
     }
   }
   return cpanelUrlForAccount(cfg, null);
+}
+
+/** 把逗号分隔的域名服务器字符串解析成数组 */
+export function parseNameservers(value?: string | null): string[] {
+  if (!value) return [];
+  return value
+    .split(',')
+    .map((ns) => ns.trim().toLowerCase())
+    .filter((ns) => ns.length > 0);
+}
+
+/** 某账号要求用户使用的域名服务器：账号级 > 全局 */
+export function nameserversForAccount(cfg: ResolvedMOFHConfig, account?: MOFHAccount | null): string[] {
+  const own = parseNameservers(account?.customNameservers);
+  if (own.length > 0) return own;
+  return parseNameservers(cfg.customNameservers);
+}
+
+/** 所有启用账号的域名服务器并集（自定义域名校验时用：指向任何一家都算合法） */
+export function allNameservers(cfg: ResolvedMOFHConfig): string[] {
+  const out = new Set<string>();
+  for (const ns of parseNameservers(cfg.customNameservers)) out.add(ns);
+  for (const account of cfg.enabledAccounts) {
+    for (const ns of parseNameservers(account.customNameservers)) out.add(ns);
+  }
+  return [...out];
+}
+
+/**
+ * 域名的 NS 已经指向哪个分销账号 —— 建站必须建在那一家，
+ * 否则 MOFH 那边域名对不上（不同分销商的 NS 是各自独立的）。
+ */
+export function accountByNameservers(
+  cfg: ResolvedMOFHConfig,
+  currentNS: string[],
+): MOFHAccount | null {
+  if (!currentNS || currentNS.length === 0) return null;
+  const lower = currentNS.map((ns) => ns.toLowerCase().replace(/\.$/, ''));
+  for (const account of cfg.enabledAccounts) {
+    const own = parseNameservers(account.customNameservers);
+    if (own.length === 0) continue;
+    const hit = lower.some((ns) =>
+      own.some((required) => ns === required || ns.endsWith('.' + required)),
+    );
+    if (hit) return account;
+  }
+  return null;
 }
 
 function authHeader(account: MOFHAccount): string {

@@ -1022,7 +1022,10 @@
       "noAccountsHint": "Add at least one MOFH reseller account to start creating hostings",
       "testAccount": "Test",
       "defaults": "Global Defaults",
-      "defaultsDesc": "Used for any account that does not override them"
+      "defaultsDesc": "Used for any account that does not override them",
+      "overrideNameservers": "Nameservers override",
+      "overrideNameserversHint": "Nameservers this reseller asks users to point their domain at",
+      "accountPanelSetup": "Configure these in this account's MOFH panel"
     },
     "domains": {
       "title": "Domain Management",
