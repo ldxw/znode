@@ -157,6 +157,27 @@ export function accountAllowedForLevel(account: MOFHAccount, levelId?: string | 
 }
 
 /**
+ * 按域名后缀从账号名 / 面板地址里推断归属账号。
+ *
+ * 用途：允许域名（子域名模式）没显式绑定账号时兜底。
+ * 多分销商的主域通常不同，而账号名往往就填成主域（如 x.xwidc.de / svips.eu.org）。
+ * 拿 A 家的域名去 B 家建站，MOFH 只会返回一句看不懂的错误；
+ * 先按域名把账号定下来，就能给出「套餐/域名不属于同一家」这类明确提示。
+ */
+export function accountByDomainName(cfg: ResolvedMOFHConfig, domain?: string | null): MOFHAccount | null {
+  if (!domain) return null;
+  const d = domain.toLowerCase().trim().replace(/^\./, '');
+  if (!d) return null;
+  return (
+    cfg.enabledAccounts.find((a) => {
+      const name = (a.name || '').toLowerCase().trim();
+      const panel = (a.cpanelUrl || '').toLowerCase().trim().replace(/^https?:\/\//, '');
+      return name === d || name.endsWith('.' + d) || panel === d || panel.endsWith('.' + d);
+    }) || null
+  );
+}
+
+/**
  * 挑一个账号用来建站。
  *
  * - least-loaded：按已建站数量挑最空的那个（老数据 mofhAccountId 为空，

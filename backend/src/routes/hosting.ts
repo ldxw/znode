@@ -14,6 +14,7 @@ import {
   cpanelUrlForAccount,
   allNameservers,
   accountByNameservers,
+  accountByDomainName,
   accountAllowedForLevel,
   mofhJsonRequest,
   mofhXmlRequest,
@@ -572,6 +573,12 @@ router.post('/create', authMiddleware, async (req: AuthenticatedRequest, res: Re
     // 子域名模式下，允许域名上指定的归属账号（不同分销商的主域不同）
     let preferredAccountId: string | null = null;
 
+    // MOFH 配置：下面「按域名推断归属账号」和后面的建站流程都要用，所以先拿到
+    const mofhConfig = await getUsableMOFHConfig();
+    if (!mofhConfig) {
+      return res.status(500).json({ error: 'Hosting service is not configured' });
+    }
+
     if (isCustomDomain) {
       // Custom domain mode - use the customDomain directly
       fullDomain = customDomain.toLowerCase().trim();
@@ -656,8 +663,9 @@ router.post('/create', authMiddleware, async (req: AuthenticatedRequest, res: Re
         if (!match) {
           return res.status(400).json({ error: 'This domain is not allowed' });
         }
-        // 该域名若指定了归属账号，就用它（多分销商时不同主域属于不同账号）
-        preferredAccountId = match.accountId || null;
+        // 该域名若指定了归属账号，就用它（多分销商时不同主域属于不同账号）。
+        // 没显式绑定时按域名去账号名/面板地址推断——避免拿 A 家的域名去 B 家建站。
+        preferredAccountId = match.accountId || accountByDomainName(mofhConfig, match.domain)?.id || null;
       }
     }
     
@@ -673,12 +681,6 @@ router.post('/create', authMiddleware, async (req: AuthenticatedRequest, res: Re
       return res.status(400).json({ 
         error: 'You have reached the maximum limit of 3 hosting accounts' 
       });
-    }
-    
-    // Get MOFH config
-    const mofhConfig = await getUsableMOFHConfig();
-    if (!mofhConfig) {
-      return res.status(500).json({ error: 'Hosting service is not configured' });
     }
     
     // Check if domain already exists
