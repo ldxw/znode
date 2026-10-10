@@ -523,7 +523,10 @@
     "nsValid": "域名服务器配置正确！",
     "nsInvalid": "域名服务器配置不正确",
     "currentNameservers": "当前域名服务器：",
-    "nsChangeNote": "请在您的域名注册商处更新域名服务器并等待DNS传播"
+    "nsChangeNote": "请在您的域名注册商处更新域名服务器并等待DNS传播",
+    "captchaRequired": "请先完成人机验证",
+    "minLengthError": "子域名至少需要 {n} 个字符",
+    "reservedError": "该子域名已被保留，无法注册"
   },
   "support": {
     "title": "支持",
@@ -1197,7 +1200,16 @@
       "account": "归属账号",
       "accountAuto": "自动（按策略分配）",
       "accountAutoShort": "自动",
-      "accountHint": "该域名属于哪个 MOFH 分销账号。不同分销商的主域不同，建站时必须用对应那家。"
+      "accountHint": "该域名属于哪个 MOFH 分销账号。不同分销商的主域不同，建站时必须用对应那家。",
+      "subdomainRules": "子域名注册规则",
+      "subdomainRulesDesc": "限制用户能注册哪些子域名",
+      "minLength": "最小长度",
+      "minLengthHint": "短于该长度的子域名不允许注册（3-8，MOFH 上限是 8）",
+      "blockedPrefixes": "禁止的前缀",
+      "blockedPrefixesPlaceholder": "admin, www, mail, cpanel, support",
+      "blockedPrefixesHint": "逗号或换行分隔。按前缀匹配 —— 禁用 admin 也会挡住 admin123。",
+      "ruleSaved": "已保存",
+      "ruleSavedDesc": "子域名规则已更新"
     },
     "oauth": {
       "title": "OAuth 提供商",
@@ -1517,7 +1529,8 @@
     "submitRating": "提交评价",
     "relatedArticles": "可能有帮助的相关文章",
     "kbSuggestionHint": "在创建工单之前，请检查这些文章是否能回答您的问题",
-    "ticketReopenedDesc": "该工单已重新打开"
+    "ticketReopenedDesc": "该工单已重新打开",
+    "captchaRequired": "请先完成人机验证"
   },
   "notification": {
     "title": "通知",
@@ -1765,7 +1778,8 @@
     "statusIssuing": "签发中",
     "statusPending": "待验证",
     "statusVerified": "已验证",
-    "txtRecord": "TXT 记录"
+    "txtRecord": "TXT 记录",
+    "captchaRequired": "请先完成人机验证"
   },
   "settings": {
     "generalSettings": "常规设置",

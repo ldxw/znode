@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
@@ -21,6 +21,8 @@ import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { usePageTitle } from "@/contexts/SiteContext";
+import { TurnstileWidget } from "@/components/TurnstileWidget";
+import { useTurnstileConfig, isTurnstileRequired } from "@/hooks/useTurnstile";
 
 interface AllowedDomain {
   id: string;
@@ -64,6 +66,53 @@ const CreateHosting = () => {
   const [checkResult, setCheckResult] = useState<"available" | "taken" | null>(null);
   const [showConfig, setShowConfig] = useState(false);
   const [label, setLabel] = useState("");
+
+  // 人机验证（Turnstile）：后端对 createHosting 开了校验，这里必须带上 token
+  const { data: turnstileConfig } = useTurnstileConfig();
+  const requiresTurnstile = isTurnstileRequired(turnstileConfig, 'createHosting');
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileKey, setTurnstileKey] = useState(0);
+  const resetTurnstile = useCallback(() => {
+    setTurnstileToken(null);
+    setTurnstileKey(prev => prev + 1);
+  }, []);
+  const handleTurnstileVerify = useCallback((token: string) => {
+    setTurnstileToken(token);
+  }, []);
+
+  // 子域名注册规则（最小长度 / 禁止前缀），与后端保持一致
+  const { data: subdomainRules } = useQuery({
+    queryKey: ["subdomain-rules"],
+    queryFn: async () => {
+      const r = await fetch(`${API_URL}/api/settings/general/public`);
+      if (!r.ok) return { minLength: 3, blockedPrefixes: [] as string[] };
+      const d = await r.json();
+      const min = Number(d.subdomainMinLength);
+      return {
+        minLength: Number.isFinite(min) && min > 0 ? Math.floor(min) : 3,
+        blockedPrefixes: String(d.subdomainBlockedPrefixes || "")
+          .split(/[,\n]/)
+          .map((p: string) => p.trim().toLowerCase())
+          .filter(Boolean),
+      };
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const subdomainRuleError = (() => {
+    if (activeTab !== "subdomain") return null;
+    const value = subdomain.trim().toLowerCase();
+    if (!value) return null;
+    const min = subdomainRules?.minLength ?? 3;
+    if (value.length < min) {
+      return (t.createHosting?.minLengthError || "Subdomain must be at least {n} characters").replace("{n}", String(min));
+    }
+    const hit = (subdomainRules?.blockedPrefixes || []).find((p: string) => value.startsWith(p));
+    if (hit) {
+      return t.createHosting?.reservedError || "This subdomain is reserved and cannot be registered";
+    }
+    return null;
+  })();
   
   // Subdomain state
   const [subdomain, setSubdomain] = useState("");
@@ -220,10 +269,12 @@ const CreateHosting = () => {
           customDomain: customDomain,
           isCustomDomain: true,
           label,
+          turnstileToken: turnstileToken || undefined,
         } : {
           subdomain,
           domain: selectedDomain,
           label,
+          turnstileToken: turnstileToken || undefined,
         }),
       });
       const data = await response.json();
@@ -247,6 +298,8 @@ const CreateHosting = () => {
         variant: "destructive",
       });
     },
+    // token 只能用一次，无论成败都要重置，否则重试必然失败
+    onSettled: () => resetTurnstile(),
   });
 
   const handleCheckDomain = () => {
@@ -266,6 +319,22 @@ const CreateHosting = () => {
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
+    if (subdomainRuleError) {
+      toast({
+        title: t.messages.error,
+        description: subdomainRuleError,
+        variant: "destructive",
+      });
+      return;
+    }
+    if (requiresTurnstile && !turnstileToken) {
+      toast({
+        title: t.messages.error,
+        description: t.createHosting?.captchaRequired || "Please complete the captcha verification",
+        variant: "destructive",
+      });
+      return;
+    }
     createHostingMutation.mutate();
   };
 
@@ -389,11 +458,14 @@ const CreateHosting = () => {
                     <p className="text-sm text-muted-foreground mt-2">
                       {t.createHosting.subdomainHelp}
                     </p>
+                    {subdomainRuleError && (
+                      <p className="text-sm text-destructive mt-2">{subdomainRuleError}</p>
+                    )}
                   </div>
 
                   <Button
                     onClick={handleCheckDomain}
-                    disabled={!subdomain.trim() || subdomain.length < 3 || isChecking}
+                    disabled={!subdomain.trim() || !!subdomainRuleError || subdomain.length < 3 || isChecking}
                     size="lg"
                     className="w-full"
                   >
@@ -623,11 +695,22 @@ const CreateHosting = () => {
                 </div>
               </div>
 
+              {requiresTurnstile && turnstileConfig?.siteKey && (
+                <div className="pb-2">
+                  <TurnstileWidget
+                    key={`create-${turnstileKey}`}
+                    siteKey={turnstileConfig.siteKey}
+                    onVerify={handleTurnstileVerify}
+                    onExpire={resetTurnstile}
+                  />
+                </div>
+              )}
+
               <Button
                 type="submit"
                 size="lg"
                 className="w-full"
-                disabled={createHostingMutation.isPending}
+                disabled={createHostingMutation.isPending || (requiresTurnstile && !turnstileToken) || !!subdomainRuleError}
               >
                 {createHostingMutation.isPending ? (
                   <>

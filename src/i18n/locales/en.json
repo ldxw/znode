@@ -434,7 +434,10 @@
     "nsValid": "Nameservers configured correctly!",
     "nsInvalid": "Nameservers not configured correctly",
     "currentNameservers": "Current nameservers:",
-    "nsChangeNote": "Please update your domain's nameservers at your registrar and wait for DNS propagation (can take up to 48 hours)."
+    "nsChangeNote": "Please update your domain's nameservers at your registrar and wait for DNS propagation (can take up to 48 hours).",
+    "captchaRequired": "Please complete the captcha verification",
+    "minLengthError": "Subdomain must be at least {n} characters",
+    "reservedError": "This subdomain is reserved and cannot be registered"
   },
   "support": {
     "title": "Support",
@@ -1071,7 +1074,16 @@
       "account": "MOFH Account",
       "accountAuto": "Auto (assign by strategy)",
       "accountAutoShort": "Auto",
-      "accountHint": "Which MOFH reseller owns this domain. Different resellers own different domains."
+      "accountHint": "Which MOFH reseller owns this domain. Different resellers own different domains.",
+      "subdomainRules": "Subdomain Rules",
+      "subdomainRulesDesc": "Restrict which subdomains users are allowed to register",
+      "minLength": "Minimum length",
+      "minLengthHint": "Shorter subdomains are rejected (3-8, MOFH limit is 8)",
+      "blockedPrefixes": "Blocked prefixes",
+      "blockedPrefixesPlaceholder": "admin, www, mail, cpanel, support",
+      "blockedPrefixesHint": "Comma or newline separated. Prefix match — blocking \"admin\" also blocks \"admin123\".",
+      "ruleSaved": "Saved",
+      "ruleSavedDesc": "Subdomain rules updated"
     },
     "oauth": {
       "title": "OAuth Providers",
@@ -1343,7 +1355,8 @@
     "feedbackPlaceholder": "Tell us more about your experience...",
     "submitRating": "Submit Rating",
     "relatedArticles": "Related articles that may help",
-    "kbSuggestionHint": "Check if any of these articles answer your question before creating a ticket"
+    "kbSuggestionHint": "Check if any of these articles answer your question before creating a ticket",
+    "captchaRequired": "Please complete the captcha verification"
   },
   "notification": {
     "title": "Notifications",
@@ -1566,7 +1579,8 @@
     "refreshStatus": "Refresh Status",
     "autoInstalled": "Automatically Installed",
     "autoInstalledDesc": "This SSL certificate has been automatically installed on your hosting account. No manual action required.",
-    "verifiedAt": "Verified"
+    "verifiedAt": "Verified",
+    "captchaRequired": "Please complete the captcha verification"
   },
   "settings": {
     "generalSettings": "General Settings",

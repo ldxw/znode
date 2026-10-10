@@ -609,7 +609,36 @@ router.post('/create', authMiddleware, async (req: AuthenticatedRequest, res: Re
           error: 'Invalid subdomain format. Use only lowercase letters and numbers (3-8 characters)' 
         });
       }
-      
+
+      // 子域名策略：最小长度 + 禁止前缀（后台可配）
+      const generalSetting = await prisma.setting.findUnique({
+        where: { key: 'general_settings' },
+      });
+      const general = generalSetting?.value ? JSON.parse(generalSetting.value) : {};
+      const minLengthRaw = Number(general.subdomainMinLength);
+      const minLength = Number.isFinite(minLengthRaw) && minLengthRaw > 0
+        ? Math.floor(minLengthRaw)
+        : 3;
+
+      if (subdomain.length < minLength) {
+        return res.status(400).json({
+          error: `Subdomain must be at least ${minLength} characters`,
+          minLength,
+        });
+      }
+
+      const blockedPrefixes = String(general.subdomainBlockedPrefixes || '')
+        .split(/[,\n]/)
+        .map((p) => p.trim().toLowerCase())
+        .filter((p) => p.length > 0);
+      const blockedHit = blockedPrefixes.find((p) => subdomain.startsWith(p));
+      if (blockedHit) {
+        return res.status(400).json({
+          error: 'This subdomain is reserved and cannot be registered',
+          blockedPrefix: blockedHit,
+        });
+      }
+
       fullDomain = `${subdomain}.${domain}`;
       accountUsername = subdomain;
       

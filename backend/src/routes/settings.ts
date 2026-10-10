@@ -825,6 +825,10 @@ interface GeneralSettings {
   turnstileSiteKey: string;
   turnstileSecretKey: string;
   imgbbApiKey: string;
+  /** 子域名最小长度（少于该长度不允许注册） */
+  subdomainMinLength?: number;
+  /** 禁止注册的子域名前缀，逗号或换行分隔（前缀匹配，如 admin 会挡住 admin123） */
+  subdomainBlockedPrefixes?: string;
   turnstileServices?: {
     emailVerify: boolean;
     createHosting: boolean;
@@ -848,6 +852,8 @@ const defaultGeneralSettings: GeneralSettings = {
   turnstileSiteKey: '',
   turnstileSecretKey: '',
   imgbbApiKey: '',
+  subdomainMinLength: 3,
+  subdomainBlockedPrefixes: '',
   turnstileServices: {
     emailVerify: true,
     createHosting: false,
@@ -894,6 +900,8 @@ router.get('/general/public', async (req, res: Response) => {
       siteLogo: settings.siteLogo,
       siteFavicon: settings.siteFavicon,
       emailVerificationEnabled: settings.emailVerificationEnabled,
+      subdomainMinLength: settings.subdomainMinLength ?? 3,
+      subdomainBlockedPrefixes: settings.subdomainBlockedPrefixes || '',
       maintenanceMode: settings.maintenanceMode,
       maintenanceMessage: settings.maintenanceMessage,
       turnstileEnabled: settings.turnstileEnabled,

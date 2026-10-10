@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
@@ -14,6 +14,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import authService from "@/services/auth";
+import { TurnstileWidget } from "@/components/TurnstileWidget";
+import { useTurnstileConfig, isTurnstileRequired } from "@/hooks/useTurnstile";
 import { 
   Shield, 
   Plus, 
@@ -91,6 +93,19 @@ export default function SSLManagement() {
   const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
   const [newDomain, setNewDomain] = useState('');
   const [newProvider, setNewProvider] = useState('LETS_ENCRYPT');
+
+  // 人机验证（Turnstile）：后端对 createSSL 开了校验
+  const { data: turnstileConfig } = useTurnstileConfig();
+  const requiresTurnstile = isTurnstileRequired(turnstileConfig, 'createSSL');
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileKey, setTurnstileKey] = useState(0);
+  const resetTurnstile = useCallback(() => {
+    setTurnstileToken(null);
+    setTurnstileKey(prev => prev + 1);
+  }, []);
+  const handleTurnstileVerify = useCallback((token: string) => {
+    setTurnstileToken(token);
+  }, []);
   const [requestError, setRequestError] = useState<RequestError | null>(null);
 
   // Fetch all user's hosting accounts
@@ -148,7 +163,7 @@ export default function SSLManagement() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ domain, provider }),
+        body: JSON.stringify({ domain, provider, turnstileToken: turnstileToken || undefined }),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -196,10 +211,20 @@ export default function SSLManagement() {
         });
       }
     },
+    // token 只能用一次，失败后必须重置，否则重试必然报 captcha 失败
+    onSettled: () => resetTurnstile(),
   });
 
   const handleCreateRequest = () => {
     setRequestError(null);
+    if (requiresTurnstile && !turnstileToken) {
+      toast({
+        title: t.common?.error || 'Error',
+        description: t.ssl?.captchaRequired || 'Please complete the captcha verification',
+        variant: 'destructive',
+      });
+      return;
+    }
     requestMutation.mutate({ domain: newDomain, provider: newProvider });
   };
 
@@ -355,17 +380,29 @@ export default function SSLManagement() {
                       </Alert>
                     )}
                   </div>
-                  <DialogFooter>
+                  <DialogFooter className="flex-col gap-3 sm:flex-col">
+                    {requiresTurnstile && turnstileConfig?.siteKey && (
+                      <div className="w-full">
+                        <TurnstileWidget
+                          key={`ssl-${turnstileKey}`}
+                          siteKey={turnstileConfig.siteKey}
+                          onVerify={handleTurnstileVerify}
+                          onExpire={resetTurnstile}
+                        />
+                      </div>
+                    )}
+                    <div className="flex gap-2 w-full justify-end">
                     <Button variant="outline" onClick={() => setIsRequestDialogOpen(false)}>
                       {t.common?.cancel || 'Cancel'}
                     </Button>
                     <Button 
                       onClick={handleCreateRequest}
-                      disabled={!newDomain || requestMutation.isPending}
+                      disabled={!newDomain || requestMutation.isPending || (requiresTurnstile && !turnstileToken)}
                     >
                       {requestMutation.isPending && <RefreshCw className="w-4 h-4 mr-2 animate-spin" />}
                       {t.ssl?.create || 'Create'}
                     </Button>
+                    </div>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>

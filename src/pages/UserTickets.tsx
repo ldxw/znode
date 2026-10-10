@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
@@ -32,6 +32,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { TurnstileWidget } from "@/components/TurnstileWidget";
+import { useTurnstileConfig, isTurnstileRequired } from "@/hooks/useTurnstile";
 import {
   Select,
   SelectContent,
@@ -143,6 +145,29 @@ const UserTickets = () => {
     searchParams.get("id")
   );
   const [replyMessage, setReplyMessage] = useState("");
+
+  // 人机验证（Turnstile）：后端对 createTicket / replyTicket 分别开了校验，各需一套 token
+  const { data: turnstileConfig } = useTurnstileConfig();
+  const requiresCreateTurnstile = isTurnstileRequired(turnstileConfig, 'createTicket');
+  const requiresReplyTurnstile = isTurnstileRequired(turnstileConfig, 'replyTicket');
+  const [createTurnstileToken, setCreateTurnstileToken] = useState<string | null>(null);
+  const [createTurnstileKey, setCreateTurnstileKey] = useState(0);
+  const [replyTurnstileToken, setReplyTurnstileToken] = useState<string | null>(null);
+  const [replyTurnstileKey, setReplyTurnstileKey] = useState(0);
+  const resetCreateTurnstile = useCallback(() => {
+    setCreateTurnstileToken(null);
+    setCreateTurnstileKey(prev => prev + 1);
+  }, []);
+  const resetReplyTurnstile = useCallback(() => {
+    setReplyTurnstileToken(null);
+    setReplyTurnstileKey(prev => prev + 1);
+  }, []);
+  const handleCreateTurnstileVerify = useCallback((token: string) => {
+    setCreateTurnstileToken(token);
+  }, []);
+  const handleReplyTurnstileVerify = useCallback((token: string) => {
+    setReplyTurnstileToken(token);
+  }, []);
   const [hoveredRating, setHoveredRating] = useState<{replyId: string; star: number} | null>(null);
   const [ratingDialog, setRatingDialog] = useState<{replyId: string; rating: number} | null>(null);
   const [ratingComment, setRatingComment] = useState("");
@@ -297,7 +322,7 @@ const UserTickets = () => {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, turnstileToken: createTurnstileToken || undefined }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Failed to create ticket");
@@ -321,6 +346,8 @@ const UserTickets = () => {
         variant: "destructive",
       });
     },
+    // token 只能用一次，失败后必须重置
+    onSettled: () => resetCreateTurnstile(),
   });
 
   // Reply mutation
@@ -333,7 +360,7 @@ const UserTickets = () => {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ message, turnstileToken: replyTurnstileToken || undefined }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Failed to send reply");
@@ -355,6 +382,7 @@ const UserTickets = () => {
         variant: "destructive",
       });
     },
+    onSettled: () => resetReplyTurnstile(),
   });
 
   // Close ticket mutation
@@ -460,6 +488,15 @@ const UserTickets = () => {
       return;
     }
     
+    if (requiresCreateTurnstile && !createTurnstileToken) {
+      toast({
+        title: t.messages?.error || "Error",
+        description: t.tickets?.captchaRequired || "Please complete the captcha verification",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const { type, id } = parseServiceId(newTicket.serviceId);
     
     createMutation.mutate({
@@ -476,6 +513,14 @@ const UserTickets = () => {
       toast({
         title: t.messages?.error || "Error",
         description: t.tickets?.enterMessage || "Please enter a message",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (requiresReplyTurnstile && !replyTurnstileToken) {
+      toast({
+        title: t.messages?.error || "Error",
+        description: t.tickets?.captchaRequired || "Please complete the captcha verification",
         variant: "destructive",
       });
       return;
@@ -741,11 +786,22 @@ const UserTickets = () => {
                     />
                   </div>
                   
+                  {requiresCreateTurnstile && turnstileConfig?.siteKey && (
+                    <div className="pt-2">
+                      <TurnstileWidget
+                        key={`create-ticket-${createTurnstileKey}`}
+                        siteKey={turnstileConfig.siteKey}
+                        onVerify={handleCreateTurnstileVerify}
+                        onExpire={resetCreateTurnstile}
+                      />
+                    </div>
+                  )}
+
                   <div className="flex justify-end gap-3 pt-2">
                     <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                       {t.common?.cancel || "Cancel"}
                     </Button>
-                    <Button type="submit" disabled={createMutation.isPending}>
+                    <Button type="submit" disabled={createMutation.isPending || (requiresCreateTurnstile && !createTurnstileToken)}>
                       {createMutation.isPending ? (
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       ) : (
@@ -1060,6 +1116,18 @@ const UserTickets = () => {
                       minHeight={120}
                       simple
                     />
+
+                    {requiresReplyTurnstile && turnstileConfig?.siteKey && (
+                      <div className="mt-3">
+                        <TurnstileWidget
+                          key={`reply-${replyTurnstileKey}`}
+                          siteKey={turnstileConfig.siteKey}
+                          onVerify={handleReplyTurnstileVerify}
+                          onExpire={resetReplyTurnstile}
+                        />
+                      </div>
+                    )}
+
                     <div className="flex justify-between mt-3">
                       <Button
                         variant="outline"
@@ -1076,7 +1144,7 @@ const UserTickets = () => {
                       </Button>
                       <Button
                         onClick={handleSendReply}
-                        disabled={replyMutation.isPending}
+                        disabled={replyMutation.isPending || (requiresReplyTurnstile && !replyTurnstileToken)}
                       >
                         {replyMutation.isPending ? (
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />

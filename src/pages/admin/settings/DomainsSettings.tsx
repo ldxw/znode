@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -84,6 +85,56 @@ const DomainsSettings = () => {
     enabled: true,
     accountId: "",
   });
+
+  // 子域名注册规则：最小长度 + 禁止前缀
+  const [minLength, setMinLength] = useState("3");
+  const [blockedPrefixes, setBlockedPrefixes] = useState("");
+  const [savingRules, setSavingRules] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/settings/general/public`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!d) return;
+        if (d.subdomainMinLength) setMinLength(String(d.subdomainMinLength));
+        if (typeof d.subdomainBlockedPrefixes === "string") setBlockedPrefixes(d.subdomainBlockedPrefixes);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSaveSubdomainRules = async () => {
+    setSavingRules(true);
+    try {
+      const token = localStorage.getItem("accessToken");
+      const res = await fetch(`${API_URL}/api/settings/general`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          subdomainMinLength: Number(minLength) || 3,
+          subdomainBlockedPrefixes: blockedPrefixes,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to save");
+      }
+      toast({
+        title: dt.ruleSaved || "Saved",
+        description: dt.ruleSavedDesc || "Subdomain rules updated",
+      });
+    } catch (e: any) {
+      toast({
+        title: dt.error || "Error",
+        description: e.message,
+        variant: "destructive",
+      });
+    } finally {
+      setSavingRules(false);
+    }
+  };
 
   // Fetch allowed domains
   const { data: domainsData, isLoading } = useQuery({
@@ -379,6 +430,58 @@ const DomainsSettings = () => {
             {dt.guideDesc || 'Add domains that you want to allow users to create subdomains. For example: if you add "freehost.vn", users can create hosting with subdomains like "username.freehost.vn".'}
           </AlertDescription>
         </Alert>
+
+        {/* 子域名注册规则 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" />
+              {dt.subdomainRules || 'Subdomain Rules'}
+            </CardTitle>
+            <CardDescription>
+              {dt.subdomainRulesDesc || 'Restrict which subdomains users are allowed to register'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="min-length">{dt.minLength || 'Minimum length'}</Label>
+                <Input
+                  id="min-length"
+                  type="number"
+                  min={3}
+                  max={8}
+                  value={minLength}
+                  onChange={(e) => setMinLength(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {dt.minLengthHint || 'Shorter subdomains are rejected (3-8, MOFH limit is 8)'}
+                </p>
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="blocked-prefixes">{dt.blockedPrefixes || 'Blocked prefixes'}</Label>
+                <Textarea
+                  id="blocked-prefixes"
+                  rows={3}
+                  placeholder={dt.blockedPrefixesPlaceholder || 'admin, www, mail, cpanel, support'}
+                  value={blockedPrefixes}
+                  onChange={(e) => setBlockedPrefixes(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {dt.blockedPrefixesHint || 'Comma or newline separated. Prefix match — blocking "admin" also blocks "admin123".'}
+                </p>
+              </div>
+            </div>
+            <Button onClick={handleSaveSubdomainRules} disabled={savingRules}>
+              {savingRules ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
+              {dt.save || 'Save'}
+            </Button>
+          </CardContent>
+        </Card>
 
         {/* Domains Table */}
         <Card>
