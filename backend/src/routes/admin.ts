@@ -11,6 +11,7 @@ import {
   verifyToken 
 } from '../lib/jwt.js';
 import { adminMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import { getSSLConfig } from '../lib/ssl.js';
 
 const router = Router();
 
@@ -589,8 +590,9 @@ router.get('/health', adminMiddleware, async (req: AuthenticatedRequest, res: Re
 
   // 5. Cloudflare (SSL DNS) check
   try {
-    const cfSetting = await prisma.setting.findUnique({ where: { key: 'CLOUDFLARE_API_TOKEN' } });
-    if (!cfSetting || !cfSetting.value) {
+    // SSL 配置存在 ssl_config 表（不是 settings 表），必须走 lib/ssl 的读取函数，否则永远读不到
+    const cfToken = await getSSLConfig('CLOUDFLARE_API_TOKEN');
+    if (!cfToken) {
       checks.cloudflare = { status: 'unconfigured', message: 'Cloudflare not configured' };
     } else {
       const cfStart = Date.now();
@@ -598,7 +600,7 @@ router.get('/health', adminMiddleware, async (req: AuthenticatedRequest, res: Re
       const timeout = setTimeout(() => controller.abort(), 10000);
       try {
         const resp = await fetch('https://api.cloudflare.com/client/v4/user/tokens/verify', {
-          headers: { 'Authorization': `Bearer ${cfSetting.value}` },
+          headers: { 'Authorization': `Bearer ${cfToken}` },
           signal: controller.signal,
         });
         clearTimeout(timeout);
