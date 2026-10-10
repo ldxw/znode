@@ -481,64 +481,6 @@ const MOFHSettings = () => {
                   </div>
                 </div>
 
-                {/* 这个账号需要在它自己的 MOFH 面板里单独配置的东西 */}
-                <div className="rounded-md border border-dashed p-3 space-y-2 bg-background/60">
-                  <div className="text-xs font-medium text-muted-foreground">
-                    {mt.accountPanelSetup || 'Configure these in this account MOFH panel'}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs w-24 shrink-0 text-muted-foreground">
-                      {mt.callbackUrl || 'Callback URL'}
-                    </span>
-                    <Input
-                      value={`${window.location.origin}/api/mofh/callback`}
-                      readOnly
-                      className="bg-muted text-xs h-8"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8 shrink-0"
-                      onClick={() => {
-                        navigator.clipboard.writeText(`${window.location.origin}/api/mofh/callback`);
-                        toast({
-                          title: mt.copied || "Copied",
-                          description: mt.callbackCopied || "Callback URL has been copied",
-                        });
-                      }}
-                    >
-                      <Copy className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs w-24 shrink-0 text-muted-foreground">
-                      {mt.serverIp || 'Server IP'}
-                    </span>
-                    <Input
-                      value={loadingIp ? "..." : serverIp}
-                      readOnly
-                      className="bg-muted font-mono text-xs h-8"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8 shrink-0"
-                      disabled={loadingIp || !serverIp}
-                      onClick={() => {
-                        navigator.clipboard.writeText(serverIp);
-                        toast({
-                          title: mt.copied || "Copied",
-                          description: mt.ipCopied || "Server IP has been copied",
-                        });
-                      }}
-                    >
-                      <Copy className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
-                </div>
-
                 <div>
                   <Button
                     type="button"
