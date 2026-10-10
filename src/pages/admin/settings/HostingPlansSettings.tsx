@@ -78,6 +78,14 @@ interface HostingPlan {
   isActive: boolean;
   isFeatured: boolean;
   order: number;
+  allowedLevelIds: string[];
+}
+
+interface LevelOption {
+  id: string;
+  name: string;
+  order: number;
+  isActive: boolean;
 }
 
 interface AccountOption {
@@ -103,6 +111,7 @@ const emptyForm = () => ({
   isActive: true,
   isFeatured: false,
   order: 0,
+  allowedLevelIds: [] as string[],
 });
 
 type PlanForm = ReturnType<typeof emptyForm>;
@@ -126,12 +135,14 @@ const HostingPlansSettings = () => {
     queryFn: async () => {
       const r = await fetch(`${API_URL}/api/hosting-plans/admin`, { headers: authHeaders() });
       if (!r.ok) throw new Error("Failed to load plans");
-      return r.json() as Promise<{ plans: HostingPlan[]; accounts: AccountOption[] }>;
+      return r.json() as Promise<{ plans: HostingPlan[]; accounts: AccountOption[]; levels: LevelOption[] }>;
     },
   });
 
   const plans: HostingPlan[] = data?.plans || [];
   const accounts: AccountOption[] = data?.accounts || [];
+  const levels: LevelOption[] = data?.levels || [];
+  const levelName = (id: string) => levels.find((l) => l.id === id)?.name || id;
 
   // 选中账号下的 MOFH 套餐列表（用来选 mofhPackage）
   const { data: pkgData } = useQuery({
@@ -174,6 +185,7 @@ const HostingPlansSettings = () => {
         isActive: f.isActive,
         isFeatured: f.isFeatured,
         order: Number(f.order) || 0,
+        allowedLevelIds: f.allowedLevelIds,
       };
       const r = await fetch(
         f.id ? `${API_URL}/api/hosting-plans/${f.id}` : `${API_URL}/api/hosting-plans`,
@@ -247,6 +259,7 @@ const HostingPlansSettings = () => {
       isActive: p.isActive,
       isFeatured: p.isFeatured,
       order: p.order,
+      allowedLevelIds: p.allowedLevelIds || [],
     });
     setDialogOpen(true);
   };
@@ -352,6 +365,20 @@ const HostingPlansSettings = () => {
                       ))}
                     </div>
                   )}
+
+                  <div className="flex flex-wrap gap-1.5">
+                    {p.allowedLevelIds.length === 0 ? (
+                      <Badge variant="secondary" className="text-xs font-normal">
+                        {pt.allLevels || "All levels"}
+                      </Badge>
+                    ) : (
+                      p.allowedLevelIds.map((id) => (
+                        <Badge key={id} variant="outline" className="text-xs font-normal">
+                          {levelName(id)}
+                        </Badge>
+                      ))
+                    )}
+                  </div>
 
                   <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t">
                     <span>
@@ -490,6 +517,43 @@ const HostingPlansSettings = () => {
                   <p className="text-xs text-muted-foreground">
                     {pt.mofhPackageHint || "The package name as it exists in the MOFH panel"}
                   </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>{pt.availableForLevels || "Available to levels"}</Label>
+                <p className="text-xs text-muted-foreground">
+                  {pt.availableForLevelsHint || "Leave all unchecked to make it available to every level."}
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-1">
+                  {levels.map((l) => {
+                    const checked = form.allowedLevelIds.includes(l.id);
+                    return (
+                      <label
+                        key={l.id}
+                        className="flex items-center gap-2 text-sm rounded-md border px-3 py-2 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) =>
+                            setForm({
+                              ...form,
+                              allowedLevelIds: e.target.checked
+                                ? [...form.allowedLevelIds, l.id]
+                                : form.allowedLevelIds.filter((x) => x !== l.id),
+                            })
+                          }
+                        />
+                        <span>{l.name}</span>
+                      </label>
+                    );
+                  })}
+                  {levels.length === 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      {pt.noLevelsYet || "No levels configured yet."}
+                    </p>
+                  )}
                 </div>
               </div>
 

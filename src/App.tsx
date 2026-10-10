@@ -69,6 +69,7 @@ import AdminKBArticleForm from "./pages/admin/AdminKBArticleForm";
 import AdminKBCategoryForm from "./pages/admin/AdminKBCategoryForm";
 // Upgrade / Premium Plans
 import UpgradePlan from "./pages/UpgradePlan";
+import MyLevel from "./pages/user/MyLevel";
 import AdminPremiumPlans from "./pages/admin/AdminPremiumPlans";
 import AdminDataImport from "./pages/admin/AdminDataImport";
 // Forum
@@ -252,6 +253,11 @@ const App = () => (
                 </ProtectedRoute>
               } />
               {/* Upgrade Plan - Hidden from menu */}
+              <Route path="/user/level" element={
+                <ProtectedRoute>
+                  <MyLevel />
+                </ProtectedRoute>
+              } />
               <Route path="/user/upgrade" element={
                 <ProtectedRoute>
                   <UpgradePlan />

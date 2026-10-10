@@ -11,6 +11,8 @@ import OAuthSettings from "./settings/OAuthSettings";
 import MOFHSettings from "./settings/MOFHSettings";
 import DomainsSettings from "./settings/DomainsSettings";
 import HostingPlansSettings from "./settings/HostingPlansSettings";
+import UserLevelsSettings from "./settings/UserLevelsSettings";
+import ActivationCodesSettings from "./settings/ActivationCodesSettings";
 
 const AdminSettings = () => {
   const { t } = useLanguage();
@@ -24,6 +26,8 @@ const AdminSettings = () => {
       <Route path="/mofh" element={<MOFHSettings />} />
       <Route path="/domains" element={<DomainsSettings />} />
       <Route path="/plans" element={<HostingPlansSettings />} />
+      <Route path="/levels" element={<UserLevelsSettings />} />
+      <Route path="/activation-codes" element={<ActivationCodesSettings />} />
       <Route path="/general" element={<ComingSoon title={t.admin.generalSettings} />} />
       <Route path="/email" element={<Navigate to="/admin/email" replace />} />
       <Route path="/notifications" element={<ComingSoon title={t.admin.notifications} />} />

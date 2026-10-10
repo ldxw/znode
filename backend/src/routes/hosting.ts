@@ -14,11 +14,13 @@ import {
   cpanelUrlForAccount,
   allNameservers,
   accountByNameservers,
+  accountAllowedForLevel,
   mofhJsonRequest,
   mofhXmlRequest,
   type MOFHAccount,
   type ResolvedMOFHConfig,
 } from '../lib/mofh.js';
+import { resolveUserLevelId } from '../lib/levels.js';
 
 const router = Router();
 
@@ -544,7 +546,7 @@ router.post('/create', authMiddleware, async (req: AuthenticatedRequest, res: Re
   try {
     const userId = req.user!.id;
     const userEmail = req.user!.email;
-    const { subdomain, domain, label, isCustomDomain, customDomain, turnstileToken, planId } = req.body;
+    const { subdomain, domain, label, isCustomDomain, customDomain, turnstileToken, planId, accountId } = req.body;
     
     // Verify Turnstile if required
     const turnstileResult = await verifyTurnstileForService('createHosting', turnstileToken);
@@ -714,23 +716,51 @@ router.post('/create', authMiddleware, async (req: AuthenticatedRequest, res: Re
 
     // 挑一个 MOFH 账号来建站（多账号支持），优先级：
     //   1) 域名的 NS 指向某家分销商 / 允许域名上指定的归属账号 —— 域名决定了必须建在哪家
-    //   2) 套餐绑定的账号
-    //   3) 分配策略（least-loaded / round-robin）
+    //   2) 用户在前台自己选的账号（仅限启用且等级允许的）
+    //   3) 套餐绑定的账号
+    //   4) 分配策略（least-loaded / round-robin）
     const nsAccount = accountByNameservers(mofhConfig, domainNameservers);
     const domainAccount = nsAccount || (preferredAccountId ? getAccount(mofhConfig, preferredAccountId) : null);
     if (nsAccount) {
       console.log(`[MOFH Create Account] 域名 NS 指向账号「${nsAccount.name}」，优先使用该账号`);
     }
 
+    // 用户在前台选的账号
+    const userLevelId = await resolveUserLevelId(userId);
+    let chosenAccount: MOFHAccount | null = null;
+    if (accountId) {
+      chosenAccount = getAccount(mofhConfig, String(accountId));
+      if (!chosenAccount) {
+        return res.status(400).json({ error: 'The selected hosting account does not exist' });
+      }
+      if (!chosenAccount.enabled) {
+        return res.status(400).json({ error: 'The selected hosting account is disabled' });
+      }
+      if (!accountAllowedForLevel(chosenAccount, userLevelId)) {
+        return res.status(403).json({ error: 'Your level cannot use the selected hosting account' });
+      }
+    }
+
     let mofhAccount: MOFHAccount | null;
     if (domainAccount) {
-      // 域名已经定了账号；套餐必须属于同一家，否则建出来 MOFH 会拒
+      // 域名已经定了账号，不给换
+      if (chosenAccount && chosenAccount.id !== domainAccount.id) {
+        return res.status(400).json({ error: 'The selected hosting account does not own this domain' });
+      }
+      // 套餐必须属于同一家，否则建出来 MOFH 会拒
       if (selectedPlan?.mofhAccountId && selectedPlan.mofhAccountId !== domainAccount.id) {
         return res.status(400).json({
           error: 'The selected plan belongs to a different reseller than this domain',
         });
       }
       mofhAccount = domainAccount;
+    } else if (chosenAccount) {
+      if (selectedPlan?.mofhAccountId && selectedPlan.mofhAccountId !== chosenAccount.id) {
+        return res.status(400).json({
+          error: 'The selected plan belongs to a different reseller than the account you picked',
+        });
+      }
+      mofhAccount = chosenAccount;
     } else if (selectedPlan?.mofhAccountId) {
       mofhAccount = getAccount(mofhConfig, selectedPlan.mofhAccountId);
       if (!mofhAccount) {
@@ -742,6 +772,11 @@ router.post('/create', authMiddleware, async (req: AuthenticatedRequest, res: Re
 
     if (!mofhAccount) {
       return res.status(500).json({ error: 'No MOFH account available' });
+    }
+
+    // 兜底：最终选定的账号也要过等级校验（例如套餐绑定的账号）
+    if (!accountAllowedForLevel(mofhAccount, userLevelId)) {
+      return res.status(403).json({ error: 'Your level cannot use this hosting account' });
     }
 
     // 套餐名：优先用所选套餐绑定的 MOFH 套餐，否则用账号默认套餐

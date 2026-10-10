@@ -14,6 +14,9 @@ model User {
   name                    String?
   avatar                  String?
   role                    Role                     @default(USER)
+  /** 用户等级（激活码兑换升级）；NULL = 默认等级 */
+  levelId                 String?
+  level                   UserLevel?               @relation(fields: [levelId], references: [id], onDelete: SetNull)
   emailVerified           DateTime?
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt
@@ -156,11 +159,71 @@ model HostingPlan {
   order         Int      @default(0)
   /// 多语言覆盖 { "zh": { name, description, features: [] } }
   translations  Json?
+  /// 允许使用该套餐的用户等级 id 列表（空/NULL = 所有等级都能用）
+  allowedLevelIds Json?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   @@index([order])
   @@map("hosting_plans")
+}
+
+/// 用户等级：激活码可把用户升到某个等级，等级决定能用哪些套餐 / 哪些分销账号
+model UserLevel {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  /// 展示排序（越小越靠前）/ 也用于判断等级高低
+  order       Int      @default(0)
+  /// 注册时自动归属的等级（同一时间只应有一个）
+  isDefault   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  /// 展示用的权益要点（一行一个）
+  perks       Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users           User[]
+  activationCodes ActivationCode[]
+
+  @@index([order])
+  @@map("user_levels")
+}
+
+/// 激活码：一张码绑定一个等级，可限制使用次数与有效期
+model ActivationCode {
+  id        String    @id @default(cuid())
+  code      String    @unique
+  /// 兑换后升到的等级
+  levelId   String
+  level     UserLevel @relation(fields: [levelId], references: [id], onDelete: Cascade)
+  /// 最多可使用次数（NULL = 不限）
+  maxUses   Int?
+  usedCount Int       @default(0)
+  /// 过期时间（NULL = 不过期）
+  expiresAt DateTime?
+  isActive  Boolean   @default(true)
+  note      String?
+  createdAt DateTime  @default(now())
+
+  uses ActivationCodeUse[]
+
+  @@index([code])
+  @@map("activation_codes")
+}
+
+/// 激活码使用记录（谁在什么时候用了哪张码）
+model ActivationCodeUse {
+  id        String   @id @default(cuid())
+  codeId    String
+  code      ActivationCode @relation(fields: [codeId], references: [id], onDelete: Cascade)
+  userId    String
+  userEmail String?
+  usedAt    DateTime @default(now())
+
+  @@index([codeId])
+  @@index([userId])
+  @@map("activation_code_uses")
 }
 
 model Database {

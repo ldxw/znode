@@ -423,6 +423,7 @@ router.put('/mofh', adminMiddleware, async (req: AuthenticatedRequest, res: Resp
         defaultPackage: a.defaultPackage || undefined,
         cpanelUrl: a.cpanelUrl || undefined,
         customNameservers: a.customNameservers || undefined,
+        allowedLevelIds: Array.isArray(a.allowedLevelIds) ? a.allowedLevelIds.filter(Boolean) : [],
         note: a.note || undefined,
       });
     }

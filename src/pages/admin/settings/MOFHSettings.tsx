@@ -43,6 +43,8 @@ interface MOFHAccountDraft {
   defaultPackage?: string;
   cpanelUrl?: string;
   customNameservers?: string;
+  /** 允许使用该账号的用户等级 id 列表（空 = 所有等级都能用） */
+  allowedLevelIds?: string[];
   note?: string;
 }
 
@@ -229,6 +231,18 @@ const MOFHSettings = () => {
   const handleSave = () => {
     saveMutation.mutate(config);
   };
+
+  const { data: levelsData } = useQuery({
+    queryKey: ["admin-levels"],
+    queryFn: async () => {
+      const r = await fetch(`${API_URL}/api/levels/admin`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` },
+      });
+      if (!r.ok) return { levels: [] as Array<{ id: string; name: string }> };
+      return r.json() as Promise<{ levels: Array<{ id: string; name: string }> }>;
+    },
+  });
+  const levels: Array<{ id: string; name: string }> = levelsData?.levels || [];
 
   const updateAccount = (index: number, patch: Partial<MOFHAccountDraft>) => {
     setConfig((prev) => ({
@@ -477,6 +491,43 @@ const MOFHSettings = () => {
                         value={account.note || ""}
                         onChange={(e) => updateAccount(index, { note: e.target.value })}
                       />
+                    </div>
+                  </div>
+
+                  {/* 该账号只给哪些等级用 */}
+                  <div className="space-y-2">
+                    <Label>{mt.allowedLevels || 'Available to levels'}</Label>
+                    <p className="text-xs text-muted-foreground">
+                      {mt.allowedLevelsHint || 'Leave all unchecked so every level can use this account.'}
+                    </p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      {levels.map((l) => {
+                        const ids = account.allowedLevelIds || [];
+                        return (
+                          <label
+                            key={l.id}
+                            className="flex items-center gap-2 text-sm rounded-md border px-3 py-2 cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={ids.includes(l.id)}
+                              onChange={(e) =>
+                                updateAccount(index, {
+                                  allowedLevelIds: e.target.checked
+                                    ? [...ids, l.id]
+                                    : ids.filter((x) => x !== l.id),
+                                })
+                              }
+                            />
+                            <span>{l.name}</span>
+                          </label>
+                        );
+                      })}
+                      {levels.length === 0 && (
+                        <p className="text-xs text-muted-foreground col-span-full">
+                          {mt.noLevelsYet || 'No levels configured yet.'}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>

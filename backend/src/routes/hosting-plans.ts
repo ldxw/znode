@@ -9,8 +9,9 @@
 
 import { Router, Response } from 'express';
 import prisma from '../lib/prisma.js';
-import { adminMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
-import { loadMOFHConfig, getAccount, type ResolvedMOFHConfig } from '../lib/mofh.js';
+import { adminMiddleware, optionalAuthMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import { loadMOFHConfig, getAccount, accountsForLevel, type ResolvedMOFHConfig } from '../lib/mofh.js';
+import { resolveUserLevelId, levelAllows, toStringArray } from '../lib/levels.js';
 
 const router = Router();
 
@@ -36,6 +37,7 @@ interface PlanPayload {
   isFeatured?: boolean;
   order?: number;
   translations?: Record<string, unknown> | null;
+  allowedLevelIds?: string[];
 }
 
 async function usedCountByPlan(): Promise<Map<string, number>> {
@@ -74,29 +76,41 @@ function serializePlan(
     isFeatured: plan.isFeatured,
     order: plan.order,
     translations: plan.translations || null,
+    allowedLevelIds: toStringArray(plan.allowedLevelIds),
     createdAt: plan.createdAt,
   };
 }
 
 // ==================== 前台：可选套餐列表 ====================
-router.get('/', async (_req: AuthenticatedRequest, res: Response) => {
+router.get('/', optionalAuthMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const [plans, cfg, used] = await Promise.all([
+    const [plans, cfg, used, levelId] = await Promise.all([
       prisma.hostingPlan.findMany({
         where: { isActive: true },
         orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
       }),
       loadMOFHConfig(),
       usedCountByPlan(),
+      resolveUserLevelId(req.user?.id),
     ]);
 
-    // 库存用完的下架（maxAccounts 有值时）
     const visible = plans.filter((p) => {
-      if (typeof p.maxAccounts !== 'number') return true;
-      return (used.get(p.id) || 0) < p.maxAccounts;
+      // 库存用完的下架（maxAccounts 有值时）
+      if (typeof p.maxAccounts === 'number' && (used.get(p.id) || 0) >= p.maxAccounts) return false;
+      // 等级不允许的不给他看
+      return levelAllows(p.allowedLevelIds, levelId);
     });
 
-    res.json({ plans: visible.map((p) => serializePlan(p, cfg, used.get(p.id) || 0)) });
+    res.json({
+      plans: visible.map((p) => serializePlan(p, cfg, used.get(p.id) || 0)),
+      myLevelId: levelId,
+      // 该等级能用的分销账号（前台让用户自己选）
+      accounts: accountsForLevel(cfg, levelId).map((a) => ({
+        id: a.id,
+        name: a.name,
+        cpanelUrl: a.cpanelUrl || cfg.cpanelUrl || '',
+      })),
+    });
   } catch (error) {
     console.error('Get hosting plans error:', error);
     res.status(500).json({ error: 'Failed to get hosting plans' });
@@ -111,9 +125,16 @@ router.get('/admin', adminMiddleware, async (_req: AuthenticatedRequest, res: Re
       loadMOFHConfig(),
       usedCountByPlan(),
     ]);
+    const levels = await prisma.userLevel.findMany({ orderBy: [{ order: 'asc' }] });
     res.json({
       plans: plans.map((p) => serializePlan(p, cfg, used.get(p.id) || 0)),
-      accounts: cfg.accounts.map((a) => ({ id: a.id, name: a.name, enabled: a.enabled })),
+      accounts: cfg.accounts.map((a) => ({
+        id: a.id,
+        name: a.name,
+        enabled: a.enabled,
+        allowedLevelIds: toStringArray(a.allowedLevelIds),
+      })),
+      levels: levels.map((l) => ({ id: l.id, name: l.name, order: l.order, isActive: l.isActive })),
     });
   } catch (error) {
     console.error('Get hosting plans (admin) error:', error);
@@ -153,6 +174,7 @@ router.post('/', adminMiddleware, async (req: AuthenticatedRequest, res: Respons
         isFeatured: body.isFeatured === true,
         order: typeof body.order === 'number' ? body.order : count,
         translations: (body.translations || null) as any,
+        allowedLevelIds: Array.isArray(body.allowedLevelIds) ? body.allowedLevelIds : [],
       },
     });
 
@@ -201,6 +223,9 @@ router.put('/:id', adminMiddleware, async (req: AuthenticatedRequest, res: Respo
     if (body.isFeatured !== undefined) data.isFeatured = body.isFeatured === true;
     if (body.order !== undefined && typeof body.order === 'number') data.order = body.order;
     if (body.translations !== undefined) data.translations = (body.translations || null) as any;
+    if (body.allowedLevelIds !== undefined) {
+      data.allowedLevelIds = Array.isArray(body.allowedLevelIds) ? body.allowedLevelIds : [];
+    }
 
     const plan = await prisma.hostingPlan.update({ where: { id }, data });
     const used = (await usedCountByPlan()).get(id) || 0;

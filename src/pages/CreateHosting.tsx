@@ -33,6 +33,13 @@ interface AllowedDomain {
   accountId?: string;
 }
 
+/** 前台可选的分销账号 */
+interface AccountOption {
+  id: string;
+  name: string;
+  cpanelUrl: string;
+}
+
 /** 前台可选的建站套餐 */
 interface HostingPlanOption {
   id: string;
@@ -166,25 +173,44 @@ const CreateHosting = () => {
     queryKey: ["hosting-plans"],
     queryFn: async () => {
       const response = await fetch(`${API_URL}/api/hosting-plans`);
-      if (!response.ok) return { plans: [] as HostingPlanOption[] };
-      return response.json() as Promise<{ plans: HostingPlanOption[] }>;
+      if (!response.ok) {
+        return { plans: [] as HostingPlanOption[], accounts: [] as AccountOption[] };
+      }
+      return response.json() as Promise<{ plans: HostingPlanOption[]; accounts: AccountOption[] }>;
     },
     staleTime: 2 * 60 * 1000,
   });
   const plans: HostingPlanOption[] = plansData?.plans || [];
-  const [selectedPlanId, setSelectedPlanId] = useState<string>("");
-  const selectedPlan = plans.find((p) => p.id === selectedPlanId) || null;
+  const accounts: AccountOption[] = plansData?.accounts || [];
 
-  // 选了套餐就把域名列表收窄到该分销商名下（accountId 为空的视为通用）
-  const domains: AllowedDomain[] = selectedPlan?.mofhAccountId
-    ? allDomains.filter((d) => !d.accountId || d.accountId === selectedPlan.mofhAccountId)
-    : allDomains;
+  // 用户自己选的分销账号（多个账号时才出现选择器）
+  const [selectedAccountId, setSelectedAccountId] = useState<string>("");
+  useEffect(() => {
+    if (accounts.length === 0) return;
+    if (!accounts.some((a) => a.id === selectedAccountId)) {
+      setSelectedAccountId(accounts[0].id);
+    }
+  }, [accounts, selectedAccountId]);
+
+  // 只展示当前账号下的套餐（没绑账号的视为通用）
+  const plansForAccount: HostingPlanOption[] = selectedAccountId
+    ? plans.filter((p) => !p.mofhAccountId || p.mofhAccountId === selectedAccountId)
+    : plans;
+
+  const [selectedPlanId, setSelectedPlanId] = useState<string>("");
+  const selectedPlan = plansForAccount.find((p) => p.id === selectedPlanId) || null;
 
   useEffect(() => {
-    if (plans.length > 0 && !plans.some((p) => p.id === selectedPlanId)) {
-      setSelectedPlanId(plans[0].id);
+    if (plansForAccount.length > 0 && !plansForAccount.some((p) => p.id === selectedPlanId)) {
+      setSelectedPlanId(plansForAccount[0].id);
     }
-  }, [plans, selectedPlanId]);
+  }, [plansForAccount, selectedPlanId]);
+
+  // 域名列表收窄到选定的分销商名下（accountId 为空的视为通用）
+  const effectiveAccountId = selectedPlan?.mofhAccountId || selectedAccountId || "";
+  const domains: AllowedDomain[] = effectiveAccountId
+    ? allDomains.filter((d) => !d.accountId || d.accountId === effectiveAccountId)
+    : allDomains;
 
   useEffect(() => {
     if (selectedDomain && !domains.some((d) => d.domain === selectedDomain)) {
@@ -326,12 +352,14 @@ const CreateHosting = () => {
           isCustomDomain: true,
           label,
           planId: selectedPlanId || undefined,
+          accountId: selectedAccountId || undefined,
           turnstileToken: turnstileToken || undefined,
         } : {
           subdomain,
           domain: selectedDomain,
           label,
           planId: selectedPlanId || undefined,
+          accountId: selectedAccountId || undefined,
           turnstileToken: turnstileToken || undefined,
         }),
       });
@@ -434,7 +462,7 @@ const CreateHosting = () => {
   // 按「提供方账号」分组：多分销商时前台分组展示，只有一个账号时平铺
   const planGroups = (() => {
     const map = new Map<string, { key: string; name: string; plans: HostingPlanOption[] }>();
-    for (const p of plans) {
+    for (const p of plansForAccount) {
       const key = p.mofhAccountId || "__auto__";
       if (!map.has(key)) {
         map.set(key, {
@@ -759,8 +787,46 @@ const CreateHosting = () => {
             </h2>
 
             <form onSubmit={handleCreate} className="space-y-6">
+              {/* 选择分销账号（多个账号时才出现） */}
+              {accounts.length > 1 && (
+                <div className="space-y-3">
+                  <div>
+                    <Label>{t.createHosting?.chooseAccount || "Hosting account"}</Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {t.createHosting?.chooseAccountHint ||
+                        "Pick which of our hosting accounts your hosting is created under."}
+                    </p>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {accounts.map((a) => {
+                      const active = selectedAccountId === a.id;
+                      return (
+                        <button
+                          key={a.id}
+                          type="button"
+                          onClick={() => setSelectedAccountId(a.id)}
+                          className={`text-left rounded-xl border p-4 transition ${
+                            active
+                              ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                              : "border-border hover:border-primary/40"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-medium">{a.name}</span>
+                            {active && <Check className="w-4 h-4 text-primary" />}
+                          </div>
+                          {a.cpanelUrl && (
+                            <p className="text-xs text-muted-foreground mt-1 font-mono">{a.cpanelUrl}</p>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* 建站套餐选择（按提供方账号分组） */}
-              {plans.length > 0 && (
+              {plansForAccount.length > 0 && (
                 <div className="space-y-3">
                   <div>
                     <Label>{t.createHosting?.choosePlan || "Choose a plan"}</Label>
@@ -771,7 +837,7 @@ const CreateHosting = () => {
                   <div className="space-y-5">
                     {planGroups.map((group) => (
                       <div key={group.key} className="space-y-2">
-                        {planGroups.length > 1 && (
+                        {planGroups.length > 1 && accounts.length <= 1 && (
                           <div className="flex items-center gap-2">
                             <Server className="w-4 h-4 text-muted-foreground" />
                             <span className="text-sm font-medium">{group.name}</span>
@@ -864,7 +930,7 @@ const CreateHosting = () => {
                 type="submit"
                 size="lg"
                 className="w-full"
-                disabled={createHostingMutation.isPending || (requiresTurnstile && !turnstileToken) || !!subdomainRuleError || (plans.length > 0 && !selectedPlanId)}
+                disabled={createHostingMutation.isPending || (requiresTurnstile && !turnstileToken) || !!subdomainRuleError || (plansForAccount.length > 0 && !selectedPlanId)}
               >
                 {createHostingMutation.isPending ? (
                   <>

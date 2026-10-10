@@ -25,6 +25,8 @@ export interface MOFHAccount {
   cpanelUrl?: string;
   /** 该账号要求用户使用的域名服务器（不同分销商各有一套） */
   customNameservers?: string;
+  /** 允许使用该账号的用户等级 id 列表（空/未设置 = 所有等级都能用） */
+  allowedLevelIds?: string[];
   note?: string;
 }
 
@@ -129,6 +131,29 @@ export async function getUsableMOFHConfig(): Promise<ResolvedMOFHConfig | null> 
 export function getAccount(cfg: ResolvedMOFHConfig, id?: string | null): MOFHAccount | null {
   if (!id) return null;
   return cfg.accounts.find((a) => a.id === id) || null;
+}
+
+/**
+ * 某个等级能用的 MOFH 账号。
+ *
+ * 账号上 `allowedLevelIds` 为空/未设置 = 所有等级都能用；
+ * levelId 为空（用户没有等级）时，只返回「不限制等级」的账号。
+ */
+export function accountsForLevel(cfg: ResolvedMOFHConfig, levelId?: string | null): MOFHAccount[] {
+  return cfg.enabledAccounts.filter((a) => {
+    const allow = a.allowedLevelIds;
+    if (!allow || allow.length === 0) return true;
+    if (!levelId) return false;
+    return allow.includes(levelId);
+  });
+}
+
+/** 该等级能否使用这个账号（建站时的服务端校验用） */
+export function accountAllowedForLevel(account: MOFHAccount, levelId?: string | null): boolean {
+  const allow = account.allowedLevelIds;
+  if (!allow || allow.length === 0) return true;
+  if (!levelId) return false;
+  return allow.includes(levelId);
 }
 
 /**
