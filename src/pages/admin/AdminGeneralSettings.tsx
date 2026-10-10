@@ -46,6 +46,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002';
 
 interface TurnstileServices {
   emailVerify: boolean;
+  register: boolean;
   createHosting: boolean;
   hostingSettings: boolean;
   createSSL: boolean;
@@ -142,6 +143,7 @@ const AdminGeneralSettings = () => {
     turnstileSecretKey: '',
     turnstileServices: {
       emailVerify: true,
+      register: true,
       createHosting: false,
       hostingSettings: false,
       createSSL: false,
@@ -1081,6 +1083,21 @@ const AdminGeneralSettings = () => {
                           <Switch checked={true} disabled />
                         </div>
                         
+                        {/* Register */}
+                        <div className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
+                          <div>
+                            <p className="text-sm font-medium">{t.settings?.turnstileRegister || 'Registration'}</p>
+                            <p className="text-xs text-muted-foreground">{t.settings?.turnstileRegisterDesc || 'New user sign-ups'}</p>
+                          </div>
+                          <Switch
+                            checked={settings.turnstileServices?.register ?? true}
+                            onCheckedChange={(checked) => setSettings(prev => ({
+                              ...prev,
+                              turnstileServices: { ...prev.turnstileServices, register: checked }
+                            }))}
+                          />
+                        </div>
+
                         {/* Create Hosting */}
                         <div className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
                           <div>

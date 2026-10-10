@@ -19,6 +19,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useSite, usePageTitle } from "@/contexts/SiteContext";
 import authService, { OAuthStatus } from "@/services/auth";
+import { TurnstileWidget } from "@/components/TurnstileWidget";
+import { useTurnstileConfig, isTurnstileRequired } from "@/hooks/useTurnstile";
 
 const Register = () => {
   const [name, setName] = useState("");
@@ -30,12 +32,22 @@ const Register = () => {
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [oauthStatus, setOauthStatus] = useState<OAuthStatus | null>(null);
   const [inviteCode, setInviteCode] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileKey, setTurnstileKey] = useState(0);
 
   const { register } = useAuth();
   const { toast } = useToast();
   const { t } = useLanguage();
   const { settings } = useSite();
   const navigate = useNavigate();
+
+  // 注册页的人机验证（后台「通用设置 → 安全 → Turnstile → 注册」）
+  const { data: turnstileConfig } = useTurnstileConfig();
+  const requiresTurnstile = isTurnstileRequired(turnstileConfig, 'register');
+  const resetTurnstile = () => {
+    setTurnstileToken("");
+    setTurnstileKey((k) => k + 1);
+  };
   
   usePageTitle(t.auth?.register || 'Register');
 
@@ -66,13 +78,21 @@ const Register = () => {
     setIsLoading(true);
     
     try {
-      await register(email, password, name || undefined, inviteCode.trim() || undefined);
+      await register(
+        email,
+        password,
+        name || undefined,
+        inviteCode.trim() || undefined,
+        turnstileToken || undefined,
+      );
       toast({
         title: t.auth.registerSuccess,
         description: t.auth.welcomeToFreeHost,
       });
       navigate('/dashboard', { replace: true });
     } catch (error: any) {
+      // Turnstile 的 token 是一次性的，失败后必须重置，否则用户重试会一直报验证失败
+      if (requiresTurnstile) resetTurnstile();
       toast({
         title: t.auth.registerFailed,
         description: error.error || t.auth.errorOccurred,
@@ -303,11 +323,22 @@ const Register = () => {
               </label>
             </div>
 
+            {requiresTurnstile && turnstileConfig?.siteKey && (
+              <div className="pb-2">
+                <TurnstileWidget
+                  key={`register-${turnstileKey}`}
+                  siteKey={turnstileConfig.siteKey}
+                  onVerify={setTurnstileToken}
+                  onExpire={() => setTurnstileToken("")}
+                />
+              </div>
+            )}
+
             <Button 
               type="submit" 
               size="lg" 
               className="w-full" 
-              disabled={isLoading || !agreeTerms || password !== confirmPassword}
+              disabled={isLoading || !agreeTerms || password !== confirmPassword || (requiresTurnstile && !turnstileToken)}
             >
               {isLoading ? (
                 <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />

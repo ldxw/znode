@@ -2052,7 +2052,9 @@
     "allowRegistration": "允许注册",
     "allowRegistrationDesc": "关掉后彻底关闭注册：注册页和接口都不再接受新账号。",
     "requireInviteCode": "注册需要邀请码",
-    "requireInviteCodeDesc": "只有持有邀请码的人才能注册。邀请码在「设置 → 邀请码」里生成。"
+    "requireInviteCodeDesc": "只有持有邀请码的人才能注册。邀请码在「设置 → 邀请码」里生成。",
+    "turnstileRegister": "用户注册",
+    "turnstileRegisterDesc": "新用户注册"
   },
   "maintenance": {
     "title": "正在维护中",

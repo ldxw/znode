@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import passport from 'passport';
 import crypto from 'crypto';
 import prisma from '../lib/prisma.js';
+import { verifyTurnstileForService } from '../lib/turnstile.js';
 import { registerSchema, loginSchema } from '../lib/validation.js';
 import { 
   generateAccessToken, 
@@ -136,6 +137,12 @@ router.post('/register', async (req: Request, res: Response) => {
         error: 'Validation failed', 
         details: validation.error.errors 
       });
+    }
+
+    // 人机验证（后台「通用设置 → 安全 → Turnstile」里的「注册」开关）
+    const turnstileResult = await verifyTurnstileForService('register', req.body?.turnstileToken);
+    if (!turnstileResult.valid) {
+      return res.status(400).json({ error: turnstileResult.error || 'Captcha verification failed' });
     }
 
     const { email, password, name, inviteCode } = validation.data;

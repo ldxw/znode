@@ -2052,7 +2052,9 @@
     "allowRegistration": "Allow registration",
     "allowRegistrationDesc": "Turn this off to close signups completely. Both the register page and the API stop accepting new accounts.",
     "requireInviteCode": "Require an invitation code",
-    "requireInviteCodeDesc": "Only people who hold an invitation code can sign up. Create them under Settings → Invite Codes."
+    "requireInviteCodeDesc": "Only people who hold an invitation code can sign up. Create them under Settings → Invite Codes.",
+    "turnstileRegister": "Registration",
+    "turnstileRegisterDesc": "New user sign-ups"
   },
   "maintenance": {
     "title": "Under Maintenance",

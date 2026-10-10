@@ -2052,7 +2052,9 @@
     "allowRegistration": "Cho phép đăng ký",
     "allowRegistrationDesc": "Tắt để đóng hoàn toàn việc đăng ký. Cả trang đăng ký và API đều ngừng nhận tài khoản mới.",
     "requireInviteCode": "Yêu cầu mã mời",
-    "requireInviteCodeDesc": "Chỉ người có mã mời mới đăng ký được. Tạo mã ở Cài đặt → Mã mời."
+    "requireInviteCodeDesc": "Chỉ người có mã mời mới đăng ký được. Tạo mã ở Cài đặt → Mã mời.",
+    "turnstileRegister": "Đăng ký",
+    "turnstileRegisterDesc": "Đăng ký người dùng mới"
   },
   "maintenance": {
     "title": "Đang bảo trì",

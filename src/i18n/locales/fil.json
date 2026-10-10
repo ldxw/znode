@@ -2052,7 +2052,9 @@
     "allowRegistration": "Payagan ang pagpaparehistro",
     "allowRegistrationDesc": "I-off ito para tuluyang isara ang signup. Parehong ang register page at API ay hindi na tatanggap ng bagong account.",
     "requireInviteCode": "Kailangan ng invite code",
-    "requireInviteCodeDesc": "Ang may invite code lang ang makakapag-signup. Gumawa ng code sa Settings → Invite Codes."
+    "requireInviteCodeDesc": "Ang may invite code lang ang makakapag-signup. Gumawa ng code sa Settings → Invite Codes.",
+    "turnstileRegister": "Pagpaparehistro",
+    "turnstileRegisterDesc": "Bagong user sign-up"
   },
   "maintenance": {
     "title": "Under Maintenance",

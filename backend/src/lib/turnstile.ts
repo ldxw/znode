@@ -7,6 +7,7 @@ export interface TurnstileSettings {
   // Services that require turnstile
   turnstileServices: {
     emailVerify: boolean;       // Always enabled, cannot be turned off
+    register: boolean;          // 注册接口
     createHosting: boolean;
     hostingSettings: boolean;   // Password change, deactivate
     createSSL: boolean;
@@ -17,6 +18,7 @@ export interface TurnstileSettings {
 
 const DEFAULT_TURNSTILE_SERVICES = {
   emailVerify: true,       // Default enabled, cannot be disabled
+  register: true,          // 注册默认开（防批量注册）
   createHosting: false,
   hostingSettings: false,
   createSSL: false,
