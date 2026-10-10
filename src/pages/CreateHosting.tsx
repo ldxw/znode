@@ -131,6 +131,11 @@ const CreateHosting = () => {
     staleTime: 5 * 60 * 1000,
   });
 
+  // Subdomain state
+  const [subdomain, setSubdomain] = useState("");
+
+  // ⚠️ 这段校验必须放在 subdomain 声明【之后】：IIFE 会立即执行，
+  // 放在前面会访问未初始化的 state，触发 TDZ（ReferenceError: Cannot access 'X' before initialization）导致整页白屏。
   const subdomainRuleError = (() => {
     if (activeTab !== "subdomain") return null;
     const value = subdomain.trim().toLowerCase();
@@ -145,9 +150,6 @@ const CreateHosting = () => {
     }
     return null;
   })();
-  
-  // Subdomain state
-  const [subdomain, setSubdomain] = useState("");
   const [selectedDomain, setSelectedDomain] = useState("");
   
   // Custom domain state
