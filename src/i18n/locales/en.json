@@ -28,7 +28,21 @@
     "active": "Active",
     "inactive": "Inactive",
     "refresh": "Refresh",
-    "copied": "Copied!"
+    "copied": "Copied!",
+    "clear": "Clear",
+    "copy": "Copy",
+    "dashboard": "/dashboard",
+    "daysAgo": "days ago",
+    "hoursAgo": "hours ago",
+    "justNow": "Just now",
+    "loadMore": "Load more",
+    "minutesAgo": "minutes ago",
+    "networkError": "Network error, please try again.",
+    "processing": "Processing…",
+    "retry": "Retry",
+    "sending": "Sending…",
+    "status": "Pending",
+    "verifying": "Verifying…"
   },
   "userSettings": {
     "title": "Settings",
@@ -98,7 +112,9 @@
     "signatureHint": "Supports basic markdown: **bold**, *italic*, __underline__",
     "preview": "Preview",
     "signatureSaved": "Signature saved",
-    "signatureSavedDesc": "Your signature has been updated"
+    "signatureSavedDesc": "Your signature has been updated",
+    "saveSignature": "Save Signature",
+    "signatureEditor": "Signature Editor"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -118,24 +134,95 @@
   "tools": {
     "base64": {
       "title": "Base64 Encoder/Decoder",
-      "subtitle": "Encode and decode text, files, and images to/from Base64 format"
+      "subtitle": "Encode and decode text, files, and images to/from Base64 format",
+      "base64ToFile": "Base64 to File",
+      "base64ToImage": "Base64 to Image",
+      "convert": "Convert",
+      "convertToFile": "Convert to file",
+      "decode": "Decode",
+      "downloadFile": "Download file",
+      "downloadImage": "Download image",
+      "dragDrop": "Click or drag a file here",
+      "encode": "Encode",
+      "enterBase64": "Enter a Base64 string…",
+      "fileTab": "File",
+      "fileTooLarge": "File is too large, max 5MB",
+      "imageTab": "Image",
+      "includeDataHeader": "Include data:image header",
+      "inputPlaceholder": "Enter text to encode/decode…",
+      "invalidBase64": "Invalid Base64 string",
+      "maxSize": "Max 5MB",
+      "mimeType": "MIME type (optional)",
+      "noContent": "Nothing to process",
+      "outputFilename": "Output filename",
+      "outputPlaceholder": "Result appears here…",
+      "preview": "Preview",
+      "textTab": "Text"
     },
     "caseConverter": {
       "title": "Case Converter",
-      "subtitle": "Convert your text to different case formats with just one click"
+      "subtitle": "Convert your text to different case formats with just one click",
+      "alternatingCase": "Alternating case",
+      "capitalizedCase": "Capitalized case",
+      "cleared": "Text cleared",
+      "converted": "Converted!",
+      "downloadText": "Download text",
+      "downloaded": "Text downloaded!",
+      "inverseCase": "Inverse case",
+      "lowerCase": "lower case",
+      "noText": "Please enter some text first",
+      "placeholder": "Type text here to convert between cases…",
+      "sentenceCase": "Sentence case",
+      "titleCase": "Title Case",
+      "upperCase": "UPPER CASE"
     },
     "codeBeautifier": {
       "title": "Code Beautifier",
-      "subtitle": "Format, beautify or minify your HTML, CSS, and JavaScript code"
+      "subtitle": "Format, beautify or minify your HTML, CSS, and JavaScript code",
+      "beautified": "Code beautified!",
+      "beautify": "Beautify",
+      "cleared": "Editor cleared!",
+      "indentSize": "Indent size",
+      "inputCode": "Input code",
+      "language": "Language",
+      "minified": "Code minified!",
+      "minify": "Minify",
+      "noCode": "Please enter some code first",
+      "outputCode": "Output code",
+      "useAsInput": "Use as input"
     },
     "colorTools": {
       "title": "Color Tools",
-      "subtitle": "Pick, convert, mix colors and generate gradients"
+      "subtitle": "Pick, convert, mix colors and generate gradients",
+      "colorMixer": "Color Mixer",
+      "colorPicker": "Color Picker",
+      "colorValues": "Color values",
+      "colorVariations": "Color variations",
+      "complementary": "Complementary",
+      "copyCode": "Copy CSS",
+      "darker": "Darker",
+      "gradientAngle": "Angle",
+      "gradientGenerator": "Gradient Generator",
+      "gradientType": "Type",
+      "lighter": "Lighter",
+      "linear": "Linear",
+      "mixRatio": "Mix ratio",
+      "radial": "Radial",
+      "result": "Result",
+      "swap": "Swap"
     },
     "cssGrid": {
       "title": "CSS Grid Generator",
-      "subtitle": "Create custom CSS grid layouts easily"
-    }
+      "subtitle": "Create custom CSS grid layouts easily",
+      "clickToAdd": "Click an empty cell to add an element",
+      "columns": "Columns",
+      "cssCode": "CSS",
+      "gap": "Gap (px)",
+      "htmlCode": "HTML",
+      "reset": "Reset",
+      "rows": "Rows"
+    },
+    "title": "Developer Tools"
   },
   "cdnSearch": {
     "title": "CDN Library Search",
@@ -310,7 +397,9 @@
       "savedDesc": "Project saved & published!",
       "saveProject": "Save & Publish",
       "savePublish": "Save & Publish"
-    }
+    },
+    "adminSuspended": "Suspended by admin",
+    "details": "Hosting Details"
   },
   "upgrade": {
     "title": "Upgrade to Premium",
@@ -490,7 +579,9 @@
         "q": "What is the ticket response time?",
         "a": "We typically respond within 24 business hours."
       }
-    ]
+    ],
+    "supportTeam": "Support Team",
+    "you": "You"
   },
   "auth": {
     "login": "Login",
@@ -583,7 +674,25 @@
     "otpCode": "OTP Code",
     "otpRequired": "Please enter the OTP code from your email",
     "otpSentToEmail": "Enter the 6-digit code sent to your email",
-    "captchaVerification": "Captcha Verification"
+    "captchaVerification": "Captcha Verification",
+    "checkSpam": "If you don't see it, check your spam folder.",
+    "emailRequired": "Please enter your email",
+    "forgotPasswordDesc": "Enter your email and we'll send a password reset link",
+    "invalidLink": "Invalid link",
+    "invalidToken": "Invalid or missing token",
+    "loginNow": "Login now",
+    "newPassword": "New Password",
+    "notLoggedIn": "Not logged in",
+    "passwordRequired": "Please enter your password",
+    "passwordResetSuccess": "Password reset successfully",
+    "passwordResetTitle": "Reset Password",
+    "passwordTooShort": "Password must be at least 6 characters",
+    "requestNewLink": "Please request a new password reset link.",
+    "requestNewReset": "Request a new reset link",
+    "resetEmailSent": "If an account exists for that email, we've sent a password reset link — please check your inbox.",
+    "resetPassword": "Reset Password",
+    "resetPasswordDesc": "Set a new password for the following account:",
+    "sendResetLink": "Send Reset Link"
   },
   "messages": {
     "error": "Error",
@@ -1121,7 +1230,70 @@
       "statusDesc": "Overview of configured providers",
       "configured": "Configured",
       "notConfigured": "Not configured"
-    }
+    },
+    "actions": "Actions",
+    "active": "Active",
+    "addTemplate": "New Template",
+    "adminSuspended": "Suspended by admin",
+    "availableVariables": "Available variables",
+    "confirmDeleteTemplate": "Delete this template?",
+    "createTemplate": "Create Template",
+    "custom": "Custom",
+    "customTemplates": "Custom Templates",
+    "disabled": "Disabled",
+    "domain": "Domain",
+    "editCustomTemplateDesc": "Edit this custom email template",
+    "editSystemTemplateDesc": "Edit this system email template",
+    "editTemplate": "Edit Template",
+    "email": "Email",
+    "emailSettings": "Email Settings",
+    "emailTemplatesDescription": "Manage the emails sent to users",
+    "hostingStatus": "Status",
+    "hostings": "Hosting Accounts",
+    "knowledgeBase": "Knowledge Base",
+    "loginCPanel": "Login to cPanel",
+    "noCustomTemplates": "No custom templates yet",
+    "saveTemplate": "Save Template",
+    "smtpConfiguration": "SMTP Configuration",
+    "smtpConfigurationDescription": "Configure the SMTP server used to send email",
+    "smtpFromEmail": "From Email",
+    "smtpFromName": "From Name",
+    "smtpHost": "SMTP Host",
+    "smtpPassword": "Password",
+    "smtpPort": "SMTP Port",
+    "smtpSaveFailed": "Failed to save SMTP settings",
+    "smtpSaved": "SMTP settings saved",
+    "smtpSettings": "SMTP Settings",
+    "smtpSettingsDescription": "Configure the SMTP server used to send email",
+    "smtpTest": "Test",
+    "smtpTestFailed": "SMTP test failed",
+    "smtpTestSuccess": "SMTP test successful",
+    "smtpUseSsl": "Use SSL/TLS (port 465)",
+    "smtpUsername": "Username",
+    "sslCertificateDetail": "SSL Certificate Details",
+    "sslCertificates": "SSL Certificates",
+    "sslCertificatesDesc": "View and manage SSL certificates requested by users",
+    "suspendedByUser": "Suspended by user",
+    "system": "System",
+    "systemTemplatesInfo": "System templates (cannot be deleted)",
+    "templateBody": "Email Body",
+    "templateBodyPlaceholder": "Enter the email body here, HTML is allowed",
+    "templateCode": "Template Code",
+    "templateCodeHint": "Supports HTML and {{variable}} placeholders",
+    "templateDeleteError": "Failed to delete template",
+    "templateDeleted": "Template deleted",
+    "templateName": "Template Name",
+    "templateNamePlaceholder": "e.g. Welcome email",
+    "templatePreview": "Preview",
+    "templateSaveError": "Failed to save template",
+    "templateSaved": "Template saved",
+    "templateSubject": "Email Subject",
+    "templateSubjectPlaceholder": "e.g. Welcome to {{siteName}}",
+    "ticketClosedDesc": "This ticket has been closed",
+    "tickets": "Tickets",
+    "userInfo": "User Info",
+    "username": "Username",
+    "viewUser": "View User"
   },
   "landing": {
     "hero": {
@@ -1252,7 +1424,8 @@
         "email": "Email Support"
       },
       "copyright": "All rights reserved."
-    }
+    },
+    "title": "Home"
   },
   "language": {
     "select": "Select Language",
@@ -1356,7 +1529,8 @@
     "submitRating": "Submit Rating",
     "relatedArticles": "Related articles that may help",
     "kbSuggestionHint": "Check if any of these articles answer your question before creating a ticket",
-    "captchaRequired": "Please complete the captcha verification"
+    "captchaRequired": "Please complete the captcha verification",
+    "ticketReopenedDesc": "This ticket has been reopened"
   },
   "notification": {
     "title": "Notifications",
@@ -1580,7 +1754,32 @@
     "autoInstalled": "Automatically Installed",
     "autoInstalledDesc": "This SSL certificate has been automatically installed on your hosting account. No manual action required.",
     "verifiedAt": "Verified",
-    "captchaRequired": "Please complete the captcha verification"
+    "captchaRequired": "Please complete the captcha verification",
+    "backToList": "Back to list",
+    "caCertificate": "CA Certificate",
+    "certificateContent": "Certificate Content",
+    "certificateContentDesc": "Paste the content below into your server or panel",
+    "certificateContentNotFound": "Certificate content not found",
+    "certificateNotFound": "Certificate not found",
+    "cnameRecord": "CNAME Record",
+    "copiedToClipboard": "Copied to clipboard",
+    "custom": "Custom domain",
+    "dnsVerification": "DNS Verification",
+    "dnsVerificationDescCustom": "Add the following DNS records at your domain registrar, then click verify",
+    "dnsVerificationDescSubdomain": "Add the following DNS records at your domain registrar, then click verify",
+    "domainType": "Domain Type",
+    "hosting": "Hosting account",
+    "issuingLogs": "Issuance Logs",
+    "privateKeyHidden": "Private key hidden",
+    "privateKeyHiddenDesc": "Hidden by default for security, click to reveal",
+    "retry": "Retry",
+    "revoke": "Revoke",
+    "statusFailed": "Failed",
+    "statusIssued": "Issued",
+    "statusIssuing": "Issuing",
+    "statusPending": "Pending verification",
+    "statusVerified": "Verified",
+    "txtRecord": "TXT Record"
   },
   "settings": {
     "generalSettings": "General Settings",

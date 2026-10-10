@@ -28,7 +28,21 @@
     "active": "Hoạt động",
     "inactive": "Không hoạt động",
     "refresh": "Làm mới",
-    "copied": "Đã sao chép!"
+    "copied": "Đã sao chép!",
+    "clear": "Xóa hết",
+    "copy": "Sao chép",
+    "dashboard": "/dashboard",
+    "daysAgo": "ngày trước",
+    "hoursAgo": "giờ trước",
+    "justNow": "Vừa xong",
+    "loadMore": "Tải thêm",
+    "minutesAgo": "phút trước",
+    "networkError": "Lỗi mạng, vui lòng thử lại.",
+    "processing": "Đang xử lý…",
+    "retry": "Thử lại",
+    "sending": "Đang gửi…",
+    "status": "Đang chờ",
+    "verifying": "Đang xác minh…"
   },
   "userSettings": {
     "title": "Cài đặt",
@@ -98,7 +112,9 @@
     "signatureHint": "Hỗ trợ markdown cơ bản: **in đậm**, *in nghiêng*, __gạch chân__",
     "preview": "Xem trước",
     "signatureSaved": "Đã lưu chữ ký",
-    "signatureSavedDesc": "Chữ ký của bạn đã được cập nhật"
+    "signatureSavedDesc": "Chữ ký của bạn đã được cập nhật",
+    "saveSignature": "Lưu chữ ký",
+    "signatureEditor": "Trình soạn chữ ký"
   },
   "nav": {
     "dashboard": "Bảng điều khiển",
@@ -118,24 +134,95 @@
   "tools": {
     "base64": {
       "title": "Base64 Mã hóa/Giải mã",
-      "subtitle": "Mã hóa và giải mã văn bản, tệp và hình ảnh sang/từ định dạng Base64"
+      "subtitle": "Mã hóa và giải mã văn bản, tệp và hình ảnh sang/từ định dạng Base64",
+      "base64ToFile": "Base64 sang tệp",
+      "base64ToImage": "Base64 sang ảnh",
+      "convert": "Chuyển đổi",
+      "convertToFile": "Chuyển thành tệp",
+      "decode": "Giải mã",
+      "downloadFile": "Tải tệp",
+      "downloadImage": "Tải ảnh",
+      "dragDrop": "Bấm hoặc kéo tệp vào đây",
+      "encode": "Mã hóa",
+      "enterBase64": "Nhập chuỗi Base64…",
+      "fileTab": "Tệp",
+      "fileTooLarge": "Tệp quá lớn, tối đa 5MB",
+      "imageTab": "Ảnh",
+      "includeDataHeader": "Bao gồm header data:image",
+      "inputPlaceholder": "Nhập văn bản để mã hóa/giải mã…",
+      "invalidBase64": "Chuỗi Base64 không hợp lệ",
+      "maxSize": "Tối đa 5MB",
+      "mimeType": "Loại MIME (tùy chọn)",
+      "noContent": "Không có nội dung để xử lý",
+      "outputFilename": "Tên tệp đầu ra",
+      "outputPlaceholder": "Kết quả hiện ở đây…",
+      "preview": "Xem trước",
+      "textTab": "Văn bản"
     },
     "caseConverter": {
       "title": "Chuyển đổi chữ hoa/thường",
-      "subtitle": "Chuyển đổi văn bản sang các định dạng khác nhau chỉ với một cú nhấp"
+      "subtitle": "Chuyển đổi văn bản sang các định dạng khác nhau chỉ với một cú nhấp",
+      "alternatingCase": "Đổi chữ hoa/thường xen kẽ",
+      "capitalizedCase": "Viết hoa chữ đầu",
+      "cleared": "Đã xóa văn bản",
+      "converted": "Đã chuyển đổi!",
+      "downloadText": "Tải văn bản",
+      "downloaded": "Đã tải văn bản!",
+      "inverseCase": "Đảo chữ hoa/thường",
+      "lowerCase": "chữ thường",
+      "noText": "Vui lòng nhập văn bản trước",
+      "placeholder": "Nhập văn bản vào đây để chuyển đổi kiểu chữ…",
+      "sentenceCase": "Viết hoa đầu câu",
+      "titleCase": "Kiểu Tiêu Đề",
+      "upperCase": "CHỮ HOA"
     },
     "codeBeautifier": {
       "title": "Làm đẹp Code",
-      "subtitle": "Định dạng, làm đẹp hoặc nén code HTML, CSS và JavaScript"
+      "subtitle": "Định dạng, làm đẹp hoặc nén code HTML, CSS và JavaScript",
+      "beautified": "Đã làm đẹp mã!",
+      "beautify": "Làm đẹp",
+      "cleared": "Đã xóa trình soạn thảo!",
+      "indentSize": "Kích thước thụt lề",
+      "inputCode": "Mã đầu vào",
+      "language": "Ngôn ngữ",
+      "minified": "Đã nén mã!",
+      "minify": "Nén",
+      "noCode": "Vui lòng nhập mã trước",
+      "outputCode": "Mã đầu ra",
+      "useAsInput": "Dùng làm đầu vào"
     },
     "colorTools": {
       "title": "Công cụ màu sắc",
-      "subtitle": "Chọn, chuyển đổi, trộn màu và tạo gradient"
+      "subtitle": "Chọn, chuyển đổi, trộn màu và tạo gradient",
+      "colorMixer": "Trộn màu",
+      "colorPicker": "Chọn màu",
+      "colorValues": "Giá trị màu",
+      "colorVariations": "Biến thể màu",
+      "complementary": "Màu bổ sung",
+      "copyCode": "Sao chép CSS",
+      "darker": "Đậm hơn",
+      "gradientAngle": "Góc",
+      "gradientGenerator": "Tạo gradient",
+      "gradientType": "Loại",
+      "lighter": "Nhạt hơn",
+      "linear": "Tuyến tính",
+      "mixRatio": "Tỷ lệ trộn",
+      "radial": "Hình tròn",
+      "result": "Kết quả",
+      "swap": "Hoán đổi"
     },
     "cssGrid": {
       "title": "Tạo CSS Grid",
-      "subtitle": "Tạo bố cục CSS Grid tùy chỉnh dễ dàng"
-    }
+      "subtitle": "Tạo bố cục CSS Grid tùy chỉnh dễ dàng",
+      "clickToAdd": "Bấm vào ô trống để thêm phần tử",
+      "columns": "Số cột",
+      "cssCode": "CSS",
+      "gap": "Khoảng cách (px)",
+      "htmlCode": "HTML",
+      "reset": "Đặt lại",
+      "rows": "Số hàng"
+    },
+    "title": "Công cụ lập trình"
   },
   "cdnSearch": {
     "title": "Tìm kiếm thư viện CDN",
@@ -310,7 +397,9 @@
       "savedDesc": "Dự án đã lưu và xuất bản!",
       "saveProject": "Lưu & Xuất bản",
       "savePublish": "Lưu & Xuất bản"
-    }
+    },
+    "adminSuspended": "Quản trị viên đã tạm dừng",
+    "details": "Chi tiết hosting"
   },
   "upgrade": {
     "title": "Nâng cấp Hosting",
@@ -434,7 +523,10 @@
     "nsValid": "Nameservers đã cấu hình đúng!",
     "nsInvalid": "Nameservers chưa được cấu hình đúng",
     "currentNameservers": "Nameservers hiện tại:",
-    "nsChangeNote": "Vui lòng cập nhật nameservers của domain tại nhà đăng ký và chờ DNS lan truyền (có thể mất đến 48 giờ)."
+    "nsChangeNote": "Vui lòng cập nhật nameservers của domain tại nhà đăng ký và chờ DNS lan truyền (có thể mất đến 48 giờ).",
+    "captchaRequired": "Vui lòng hoàn thành xác minh captcha",
+    "minLengthError": "Tên miền phụ phải có ít nhất {n} ký tự",
+    "reservedError": "Tên miền phụ này đã được giữ riêng và không thể đăng ký"
   },
   "support": {
     "title": "Hỗ trợ",
@@ -471,11 +563,25 @@
     "adminWelcome": "Sẵn sàng hỗ trợ người dùng",
     "adminSelectTicket": "Chọn một ticket để bắt đầu phản hồi",
     "faqItems": [
-      {"q": "Làm thế nào để truy cập cPanel?", "a": "Bạn có thể truy cập cPanel qua liên kết trong trang chi tiết hosting."},
-      {"q": "Tại sao website của tôi bị tạm ngưng?", "a": "Có thể do vi phạm điều khoản hoặc sử dụng quá tài nguyên. Liên hệ hỗ trợ để biết chi tiết."},
-      {"q": "Làm thế nào để nâng cấp lên Premium?", "a": "Truy cập trang Giá cả và chọn gói Premium để nâng cấp."},
-      {"q": "Thời gian phản hồi ticket là bao lâu?", "a": "Chúng tôi thường phản hồi trong vòng 24 giờ làm việc."}
-    ]
+      {
+        "q": "Làm thế nào để truy cập cPanel?",
+        "a": "Bạn có thể truy cập cPanel qua liên kết trong trang chi tiết hosting."
+      },
+      {
+        "q": "Tại sao website của tôi bị tạm ngưng?",
+        "a": "Có thể do vi phạm điều khoản hoặc sử dụng quá tài nguyên. Liên hệ hỗ trợ để biết chi tiết."
+      },
+      {
+        "q": "Làm thế nào để nâng cấp lên Premium?",
+        "a": "Truy cập trang Giá cả và chọn gói Premium để nâng cấp."
+      },
+      {
+        "q": "Thời gian phản hồi ticket là bao lâu?",
+        "a": "Chúng tôi thường phản hồi trong vòng 24 giờ làm việc."
+      }
+    ],
+    "supportTeam": "Đội hỗ trợ",
+    "you": "Bạn"
   },
   "auth": {
     "login": "Đăng nhập",
@@ -568,7 +674,25 @@
     "otpCode": "Mã OTP",
     "otpRequired": "Vui lòng nhập mã OTP từ email của bạn",
     "otpSentToEmail": "Nhập mã 6 chữ số đã gửi đến email của bạn",
-    "captchaVerification": "Xác thực Captcha"
+    "captchaVerification": "Xác thực Captcha",
+    "checkSpam": "Nếu không thấy, hãy kiểm tra thư mục spam.",
+    "emailRequired": "Vui lòng nhập email",
+    "forgotPasswordDesc": "Nhập email của bạn, chúng tôi sẽ gửi liên kết đặt lại mật khẩu",
+    "invalidLink": "Liên kết không hợp lệ",
+    "invalidToken": "Token không hợp lệ hoặc bị thiếu",
+    "loginNow": "Đăng nhập ngay",
+    "newPassword": "Mật khẩu mới",
+    "notLoggedIn": "Chưa đăng nhập",
+    "passwordRequired": "Vui lòng nhập mật khẩu",
+    "passwordResetSuccess": "Đặt lại mật khẩu thành công",
+    "passwordResetTitle": "Đặt lại mật khẩu",
+    "passwordTooShort": "Mật khẩu phải có ít nhất 6 ký tự",
+    "requestNewLink": "Vui lòng yêu cầu liên kết đặt lại mật khẩu mới.",
+    "requestNewReset": "Yêu cầu liên kết mới",
+    "resetEmailSent": "Nếu tồn tại tài khoản với email đó, chúng tôi đã gửi liên kết đặt lại mật khẩu — vui lòng kiểm tra hộp thư.",
+    "resetPassword": "Đặt lại mật khẩu",
+    "resetPasswordDesc": "Đặt mật khẩu mới cho tài khoản sau:",
+    "sendResetLink": "Gửi liên kết đặt lại"
   },
   "messages": {
     "error": "Lỗi",
@@ -987,7 +1111,34 @@
       "serverIp": "Server IP",
       "serverIpHint": "Thêm IP này vào whitelist MOFH",
       "ipCopied": "Server IP đã được sao chép",
-      "cannotGetIp": "Không thể lấy IP"
+      "cannotGetIp": "Không thể lấy IP",
+      "account": "Tài khoản",
+      "accountName": "Tên",
+      "accountNamePlaceholder": "ví dụ: Nhà bán lại chính",
+      "accounts": "Tài khoản MOFH",
+      "accountsDesc": "Thêm nhiều tài khoản bán lại — đăng ký mới sẽ được phân bổ cho các tài khoản đang bật",
+      "addAccount": "Thêm tài khoản",
+      "advancedOptions": "Cấu hình riêng của tài khoản này",
+      "advancedOptionsHint": "Để trống để dùng giá trị mặc định chung",
+      "defaults": "Giá trị mặc định chung",
+      "defaultsDesc": "Dùng cho tài khoản không tự cấu hình riêng",
+      "inheritPrefix": "Kế thừa: ",
+      "noAccounts": "Chưa có tài khoản nào",
+      "noAccountsHint": "Thêm ít nhất một tài khoản bán lại MOFH để bắt đầu tạo hosting",
+      "note": "Ghi chú",
+      "notePlaceholder": "Ghi chú cho riêng bạn, có thể để trống",
+      "overrideCpanel": "Ghi đè URL cPanel",
+      "overrideCpanelHint": "Mỗi nhà bán lại có tên miền bảng điều khiển khác nhau",
+      "overrideNameservers": "Ghi đè máy chủ tên miền",
+      "overrideNameserversHint": "Máy chủ tên miền mà nhà bán lại này yêu cầu người dùng trỏ tên miền tới",
+      "overridePackage": "Ghi đè gói",
+      "overridePackageHint": "Để trống để dùng gói mặc định chung",
+      "remove": "Xóa",
+      "strategy": "Chiến lược phân bổ",
+      "strategyHint": "«Ít tải nhất» sẽ gửi mỗi tài khoản mới đến nhà bán lại đang có ít hosting nhất",
+      "strategyLeastLoaded": "Ít tải nhất",
+      "strategyRoundRobin": "Luân phiên",
+      "testAccount": "Kiểm tra"
     },
     "domains": {
       "title": "Quản lý Domain",
@@ -1028,7 +1179,20 @@
       "updateSuccess": "Đã cập nhật domain thành công",
       "deleteSuccess": "Đã xóa domain thành công",
       "error": "Lỗi",
-      "enterDomain": "Vui lòng nhập tên domain"
+      "enterDomain": "Vui lòng nhập tên domain",
+      "account": "Tài khoản MOFH",
+      "accountAuto": "Tự động (phân bổ theo chiến lược)",
+      "accountAutoShort": "Tự động",
+      "accountHint": "Tên miền này thuộc nhà bán lại MOFH nào. Mỗi nhà bán lại sở hữu tên miền khác nhau.",
+      "blockedPrefixes": "Tiền tố bị chặn",
+      "blockedPrefixesHint": "Phân tách bằng dấu phẩy hoặc xuống dòng. Khớp theo tiền tố — chặn \"admin\" cũng chặn \"admin123\".",
+      "blockedPrefixesPlaceholder": "admin, www, mail, cpanel, support",
+      "minLength": "Độ dài tối thiểu",
+      "minLengthHint": "Tên miền phụ ngắn hơn sẽ bị từ chối (3-8, MOFH giới hạn 8)",
+      "ruleSaved": "Đã lưu",
+      "ruleSavedDesc": "Đã cập nhật quy tắc tên miền phụ",
+      "subdomainRules": "Quy tắc tên miền phụ",
+      "subdomainRulesDesc": "Giới hạn những tên miền phụ mà người dùng được phép đăng ký"
     },
     "oauth": {
       "title": "OAuth Providers",
@@ -1066,7 +1230,70 @@
       "statusDesc": "Tổng quan về các provider đã cấu hình",
       "configured": "Đã cấu hình",
       "notConfigured": "Chưa cấu hình"
-    }
+    },
+    "actions": "Thao tác",
+    "active": "Đang bật",
+    "addTemplate": "Mẫu mới",
+    "adminSuspended": "Quản trị viên đã tạm dừng",
+    "availableVariables": "Biến khả dụng",
+    "confirmDeleteTemplate": "Xóa mẫu này?",
+    "createTemplate": "Tạo mẫu",
+    "custom": "Tùy chỉnh",
+    "customTemplates": "Mẫu tùy chỉnh",
+    "disabled": "Đã tắt",
+    "domain": "Tên miền",
+    "editCustomTemplateDesc": "Sửa mẫu email tùy chỉnh này",
+    "editSystemTemplateDesc": "Sửa mẫu email hệ thống này",
+    "editTemplate": "Sửa mẫu",
+    "email": "Email",
+    "emailSettings": "Cài đặt email",
+    "emailTemplatesDescription": "Quản lý email gửi cho người dùng",
+    "hostingStatus": "Trạng thái",
+    "hostings": "Tài khoản hosting",
+    "knowledgeBase": "Kho kiến thức",
+    "loginCPanel": "Đăng nhập cPanel",
+    "noCustomTemplates": "Chưa có mẫu tùy chỉnh nào",
+    "saveTemplate": "Lưu mẫu",
+    "smtpConfiguration": "Cấu hình SMTP",
+    "smtpConfigurationDescription": "Cấu hình máy chủ SMTP dùng để gửi email",
+    "smtpFromEmail": "Email người gửi",
+    "smtpFromName": "Tên người gửi",
+    "smtpHost": "Máy chủ SMTP",
+    "smtpPassword": "Mật khẩu",
+    "smtpPort": "Cổng SMTP",
+    "smtpSaveFailed": "Lưu cài đặt SMTP thất bại",
+    "smtpSaved": "Đã lưu cài đặt SMTP",
+    "smtpSettings": "Cài đặt SMTP",
+    "smtpSettingsDescription": "Cấu hình máy chủ SMTP dùng để gửi email",
+    "smtpTest": "Kiểm tra",
+    "smtpTestFailed": "Kiểm tra SMTP thất bại",
+    "smtpTestSuccess": "Kiểm tra SMTP thành công",
+    "smtpUseSsl": "Dùng SSL/TLS (cổng 465)",
+    "smtpUsername": "Tên đăng nhập",
+    "sslCertificateDetail": "Chi tiết chứng chỉ SSL",
+    "sslCertificates": "Chứng chỉ SSL",
+    "sslCertificatesDesc": "Xem và quản lý chứng chỉ SSL do người dùng yêu cầu",
+    "suspendedByUser": "Người dùng đã tạm dừng",
+    "system": "Hệ thống",
+    "systemTemplatesInfo": "Mẫu hệ thống (không thể xóa)",
+    "templateBody": "Nội dung email",
+    "templateBodyPlaceholder": "Nhập nội dung email tại đây, có thể dùng HTML",
+    "templateCode": "Mã mẫu",
+    "templateCodeHint": "Hỗ trợ HTML và placeholder {{biến}}",
+    "templateDeleteError": "Xóa mẫu thất bại",
+    "templateDeleted": "Đã xóa mẫu",
+    "templateName": "Tên mẫu",
+    "templateNamePlaceholder": "ví dụ: Email chào mừng",
+    "templatePreview": "Xem trước",
+    "templateSaveError": "Lưu mẫu thất bại",
+    "templateSaved": "Đã lưu mẫu",
+    "templateSubject": "Tiêu đề email",
+    "templateSubjectPlaceholder": "ví dụ: Chào mừng đến {{siteName}}",
+    "ticketClosedDesc": "Ticket này đã đóng",
+    "tickets": "Ticket",
+    "userInfo": "Thông tin người dùng",
+    "username": "Tên đăng nhập",
+    "viewUser": "Xem người dùng"
   },
   "landing": {
     "hero": {
@@ -1197,7 +1424,8 @@
         "email": "Email hỗ trợ"
       },
       "copyright": "Bảo lưu mọi quyền."
-    }
+    },
+    "title": "Trang chủ"
   },
   "language": {
     "select": "Chọn ngôn ngữ",
@@ -1300,7 +1528,9 @@
     "feedbackPlaceholder": "Cho chúng tôi biết thêm về trải nghiệm của bạn...",
     "submitRating": "Gửi đánh giá",
     "relatedArticles": "Bài viết hướng dẫn liên quan",
-    "kbSuggestionHint": "Kiểm tra xem các bài viết này có giải đáp được câu hỏi của bạn trước khi tạo ticket"
+    "kbSuggestionHint": "Kiểm tra xem các bài viết này có giải đáp được câu hỏi của bạn trước khi tạo ticket",
+    "captchaRequired": "Vui lòng hoàn thành xác minh captcha",
+    "ticketReopenedDesc": "Ticket này đã được mở lại"
   },
   "notification": {
     "title": "Thông báo",
@@ -1523,7 +1753,33 @@
     "refreshStatus": "Làm mới trạng thái",
     "autoInstalled": "Đã cài đặt tự động",
     "autoInstalledDesc": "Chứng chỉ SSL này đã được cài đặt tự động vào tài khoản hosting của bạn. Không cần thực hiện thêm thao tác nào.",
-    "verifiedAt": "Ngày xác minh"
+    "verifiedAt": "Ngày xác minh",
+    "captchaRequired": "Vui lòng hoàn thành xác minh captcha",
+    "backToList": "Quay lại danh sách",
+    "caCertificate": "Chứng chỉ CA",
+    "certificateContent": "Nội dung chứng chỉ",
+    "certificateContentDesc": "Dán nội dung bên dưới vào máy chủ hoặc bảng điều khiển của bạn",
+    "certificateContentNotFound": "Không tìm thấy nội dung chứng chỉ",
+    "certificateNotFound": "Không tìm thấy chứng chỉ",
+    "cnameRecord": "Bản ghi CNAME",
+    "copiedToClipboard": "Đã sao chép vào clipboard",
+    "custom": "Tên miền tùy chỉnh",
+    "dnsVerification": "Xác minh DNS",
+    "dnsVerificationDescCustom": "Thêm các bản ghi DNS sau tại nhà cung cấp tên miền, rồi bấm xác minh",
+    "dnsVerificationDescSubdomain": "Thêm các bản ghi DNS sau tại nhà cung cấp tên miền, rồi bấm xác minh",
+    "domainType": "Loại tên miền",
+    "hosting": "Tài khoản hosting",
+    "issuingLogs": "Nhật ký cấp phát",
+    "privateKeyHidden": "Khóa riêng đã ẩn",
+    "privateKeyHiddenDesc": "Ẩn mặc định vì bảo mật, bấm để hiện",
+    "retry": "Thử lại",
+    "revoke": "Thu hồi",
+    "statusFailed": "Thất bại",
+    "statusIssued": "Đã cấp",
+    "statusIssuing": "Đang cấp",
+    "statusPending": "Chờ xác minh",
+    "statusVerified": "Đã xác minh",
+    "txtRecord": "Bản ghi TXT"
   },
   "settings": {
     "generalSettings": "Cài đặt chung",

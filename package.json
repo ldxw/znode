@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "check:locales": "node scripts/check-locales.mjs"
   },
   "dependencies": {
     "@codemirror/lang-css": "^6.3.1",
