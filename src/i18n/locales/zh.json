@@ -1193,7 +1193,11 @@
       "updateSuccess": "域名更新成功",
       "deleteSuccess": "域名删除成功",
       "error": "错误",
-      "enterDomain": "请输入域名"
+      "enterDomain": "请输入域名",
+      "account": "归属账号",
+      "accountAuto": "自动（按策略分配）",
+      "accountAutoShort": "自动",
+      "accountHint": "该域名属于哪个 MOFH 分销账号。不同分销商的主域不同，建站时必须用对应那家。"
     },
     "oauth": {
       "title": "OAuth 提供商",

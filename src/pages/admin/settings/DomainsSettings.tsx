@@ -61,6 +61,8 @@ interface AllowedDomain {
   domain: string;
   enabled: boolean;
   description: string;
+  /** 该域名归属哪个 MOFH 账号（多分销商时必填，否则可能拿错账号建站） */
+  accountId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -80,6 +82,7 @@ const DomainsSettings = () => {
     domain: "",
     description: "",
     enabled: true,
+    accountId: "",
   });
 
   // Fetch allowed domains
@@ -99,9 +102,27 @@ const DomainsSettings = () => {
 
   const domains: AllowedDomain[] = domainsData?.domains || [];
 
+  // 已配置的 MOFH 账号（用来指定域名归属哪个分销商）
+  const { data: mofhData } = useQuery({
+    queryKey: ["mofh-settings"],
+    queryFn: async () => {
+      const token = localStorage.getItem("accessToken");
+      const response = await fetch(`${API_URL}/api/settings/mofh`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) return { settings: { accounts: [] } };
+      return response.json();
+    },
+  });
+  const mofhAccounts: Array<{ id: string; name: string }> = mofhData?.settings?.accounts || [];
+  const accountLabel = (id?: string) =>
+    mofhAccounts.find((a) => a.id === id)?.name || (dt.accountAutoShort || "自动");
+
   // Add domain mutation
   const addMutation = useMutation({
-    mutationFn: async (data: { domain: string; description: string; enabled: boolean }) => {
+    mutationFn: async (data: { domain: string; description: string; enabled: boolean; accountId?: string }) => {
       const token = localStorage.getItem("accessToken");
       const response = await fetch(`${API_URL}/api/settings/domains`, {
         method: "POST",
@@ -120,7 +141,7 @@ const DomainsSettings = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["allowed-domains"] });
       setIsAddDialogOpen(false);
-      setNewDomain({ domain: "", description: "", enabled: true });
+      setNewDomain({ domain: "", description: "", enabled: true, accountId: "" });
       toast({
         title: "Success",
         description: dt.addSuccess || "Domain added successfully",
@@ -137,7 +158,7 @@ const DomainsSettings = () => {
 
   // Update domain mutation
   const updateMutation = useMutation({
-    mutationFn: async (data: { id: string; domain: string; description: string; enabled: boolean }) => {
+    mutationFn: async (data: { id: string; domain: string; description: string; enabled: boolean; accountId?: string }) => {
       const token = localStorage.getItem("accessToken");
       const response = await fetch(`${API_URL}/api/settings/domains/${data.id}`, {
         method: "PUT",
@@ -242,6 +263,7 @@ const DomainsSettings = () => {
       domain: editingDomain.domain,
       description: editingDomain.description,
       enabled: editingDomain.enabled,
+      accountId: editingDomain.accountId || "",
     });
   };
 
@@ -300,6 +322,23 @@ const DomainsSettings = () => {
                     value={newDomain.description}
                     onChange={(e) => setNewDomain({ ...newDomain, description: e.target.value })}
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="account">{dt.account || 'MOFH Account'}</Label>
+                  <select
+                    id="account"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={newDomain.accountId}
+                    onChange={(e) => setNewDomain({ ...newDomain, accountId: e.target.value })}
+                  >
+                    <option value="">{dt.accountAuto || 'Auto (assign by strategy)'}</option>
+                    {mofhAccounts.map((a) => (
+                      <option key={a.id} value={a.id}>{a.name}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-muted-foreground">
+                    {dt.accountHint || 'Which MOFH reseller owns this domain. Different resellers own different domains.'}
+                  </p>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Switch
@@ -377,6 +416,7 @@ const DomainsSettings = () => {
                   <TableRow>
                     <TableHead>{dt.domain || 'Domain'}</TableHead>
                     <TableHead>{dt.description || 'Description'}</TableHead>
+                    <TableHead>{dt.account || 'MOFH Account'}</TableHead>
                     <TableHead>{dt.status || 'Status'}</TableHead>
                     <TableHead>{dt.createdAt || 'Created'}</TableHead>
                     <TableHead className="text-right">{dt.actions || 'Actions'}</TableHead>
@@ -393,6 +433,9 @@ const DomainsSettings = () => {
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {domain.description || "-"}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {accountLabel(domain.accountId)}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -495,6 +538,23 @@ const DomainsSettings = () => {
                     value={editingDomain.description}
                     onChange={(e) => setEditingDomain({ ...editingDomain, description: e.target.value })}
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-account">{dt.account || 'MOFH Account'}</Label>
+                  <select
+                    id="edit-account"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={editingDomain.accountId || ""}
+                    onChange={(e) => setEditingDomain({ ...editingDomain, accountId: e.target.value })}
+                  >
+                    <option value="">{dt.accountAuto || 'Auto (assign by strategy)'}</option>
+                    {mofhAccounts.map((a) => (
+                      <option key={a.id} value={a.id}>{a.name}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-muted-foreground">
+                    {dt.accountHint || 'Which MOFH reseller owns this domain. Different resellers own different domains.'}
+                  </p>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Switch

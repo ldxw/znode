@@ -567,6 +567,8 @@ router.post('/create', authMiddleware, async (req: AuthenticatedRequest, res: Re
     let accountUsername: string;
     // 自定义域名解析出来的 NS —— 用来决定该建在哪个分销账号下
     let domainNameservers: string[] = [];
+    // 子域名模式下，允许域名上指定的归属账号（不同分销商的主域不同）
+    let preferredAccountId: string | null = null;
 
     if (isCustomDomain) {
       // Custom domain mode - use the customDomain directly
@@ -617,12 +619,14 @@ router.post('/create', authMiddleware, async (req: AuthenticatedRequest, res: Re
       });
       
       if (domainsSettings) {
-        const allowedDomains = JSON.parse(domainsSettings.value) as Array<{ domain: string; enabled: boolean }>;
-        const isAllowed = allowedDomains.some(d => d.domain === domain && d.enabled);
+        const allowedDomains = JSON.parse(domainsSettings.value) as Array<{ domain: string; enabled: boolean; accountId?: string }>;
+        const match = allowedDomains.find(d => d.domain === domain && d.enabled);
         
-        if (!isAllowed) {
+        if (!match) {
           return res.status(400).json({ error: 'This domain is not allowed' });
         }
+        // 该域名若指定了归属账号，就用它（多分销商时不同主域属于不同账号）
+        preferredAccountId = match.accountId || null;
       }
     }
     
@@ -662,12 +666,13 @@ router.post('/create', authMiddleware, async (req: AuthenticatedRequest, res: Re
     const hostingPassword = generatePassword(12);
     
     // 挑一个 MOFH 账号来建站（多账号支持）：
-    // 域名的 NS 已经指向某家分销商 → 必须建在那家；否则按策略（least-loaded / round-robin）
+    // 域名的 NS 已经指向某家分销商 → 必须建在那家；
+    // 否则看允许域名上指定的归属账号；都没有才按策略（least-loaded / round-robin）
     const nsAccount = accountByNameservers(mofhConfig, domainNameservers);
     if (nsAccount) {
       console.log(`[MOFH Create Account] 域名 NS 指向账号「${nsAccount.name}」，优先使用该账号`);
     }
-    const mofhAccount = await pickAccount(mofhConfig, nsAccount?.id);
+    const mofhAccount = await pickAccount(mofhConfig, nsAccount?.id || preferredAccountId);
     if (!mofhAccount) {
       return res.status(500).json({ error: 'No MOFH account available' });
     }

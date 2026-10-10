@@ -1067,7 +1067,11 @@
       "updateSuccess": "Domain updated successfully",
       "deleteSuccess": "Domain deleted successfully",
       "error": "Error",
-      "enterDomain": "Please enter domain name"
+      "enterDomain": "Please enter domain name",
+      "account": "MOFH Account",
+      "accountAuto": "Auto (assign by strategy)",
+      "accountAutoShort": "Auto",
+      "accountHint": "Which MOFH reseller owns this domain. Different resellers own different domains."
     },
     "oauth": {
       "title": "OAuth Providers",

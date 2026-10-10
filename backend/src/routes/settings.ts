@@ -562,6 +562,8 @@ interface AllowedDomain {
   domain: string;
   enabled: boolean;
   description: string;
+  /** 该域名归属哪个 MOFH 账号（多账号建站时用；留空=不指定，按策略分配） */
+  accountId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -612,7 +614,7 @@ router.get('/domains/public', async (req: AuthenticatedRequest, res: Response) =
 // Add new domain (admin only)
 router.post('/domains', adminMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { domain, description, enabled } = req.body;
+    const { domain, description, enabled, accountId } = req.body;
 
     if (!domain || typeof domain !== 'string') {
       return res.status(400).json({ error: 'Domain is required' });
@@ -650,6 +652,7 @@ router.post('/domains', adminMiddleware, async (req: AuthenticatedRequest, res: 
       domain: cleanDomain,
       enabled: enabled ?? true,
       description: description || '',
+      accountId: accountId || undefined,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -674,7 +677,7 @@ router.post('/domains', adminMiddleware, async (req: AuthenticatedRequest, res: 
 router.put('/domains/:id', adminMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { domain, description, enabled } = req.body;
+    const { domain, description, enabled, accountId } = req.body;
 
     // Get existing domains
     const setting = await prisma.setting.findUnique({
@@ -714,6 +717,7 @@ router.put('/domains/:id', adminMiddleware, async (req: AuthenticatedRequest, re
       domain: cleanDomain,
       description: description ?? domains[domainIndex].description,
       enabled: enabled ?? domains[domainIndex].enabled,
+      accountId: accountId === null ? undefined : (accountId || domains[domainIndex].accountId),
       updatedAt: new Date().toISOString(),
     };
 
